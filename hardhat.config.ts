@@ -43,6 +43,10 @@ const config: HardhatUserConfig = {
       },
     }),
   },
+  paths: {
+    artifacts: 'artifacts/hardhat',
+    cache: 'cache/hardhat'
+  },
   solidity: {
     compilers: [
       {

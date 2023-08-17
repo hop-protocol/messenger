@@ -9,8 +9,9 @@ solc_version = '0.8.19'
 libs = ['node_modules', 'lib']
 
 src = 'contracts'
-out = 'forge-artifacts'
 test = 'test/foundry'
+out = 'artifacts/forge'
+cache_path='cache/forge'
 
 # [profile.transporter]
 # src = 'packages/transporter/contracts'
