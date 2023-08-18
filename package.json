@@ -8,7 +8,9 @@
   "scripts": {
     "compile": "forge build",
     "hardhat-compile": "npx hardhat compile",
+    "compile-all": "npm run compile && npm run hardhat-compile",
     "test": "npx hardhat test",
+    "deploy": "forge script scripts/transporter/Deploy.t.sol --broadcast",
     "lint": "eslint .",
     "prettier": "prettier '**/*.{json,sol,md}' --check"
   },

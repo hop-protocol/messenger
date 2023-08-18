@@ -3,9 +3,9 @@ pragma solidity ^0.8.19;
 
 import {console} from "forge-std/console.sol";
 import {Script} from "forge-std/Script.sol";
-import {MockConnector} from "../../contracts/connectors/contracts/test/MockConnector.sol";
-import {L1OptimismConnector} from "../../contracts/connectors/contracts/external/L1OptimismConnector.sol";
-import {L2OptimismConnector} from "../../contracts/connectors/contracts/external/L2OptimismConnector.sol";
+import {MockConnector} from "../../contracts/connectors/test/MockConnector.sol";
+import {L1OptimismConnector} from "../../contracts/connectors/external/L1OptimismConnector.sol";
+import {L2OptimismConnector} from "../../contracts/connectors/external/L2OptimismConnector.sol";
 
 import {
     RELAY_WINDOW,
@@ -15,12 +15,12 @@ import {
     SPOKE_CHAIN_ID_0,
     SPOKE_CHAIN_ID_1,
     FULL_POOL_SIZE
-} from "../../contracts/shared-solidity/test/foundry/Constants.sol";
-import {ExternalContracts, OPStackConfig} from "../../contracts/shared-solidity/test/foundry/ExternalContracts.sol";
-import {CrossChainScript, Chain} from "../../contracts/shared-solidity/test/foundry/CrossChainScript.sol";
-import {Transporter} from "../contracts/Transporter.sol";
-import {HubTransporter} from "../contracts/HubTransporter.sol";
-import {SpokeTransporter} from  "../contracts/SpokeTransporter.sol";
+} from "../shared/Constants.sol";
+import {ExternalContracts, OPStackConfig} from "../shared/ExternalContracts.sol";
+import {CrossChainScript, Chain} from "../shared/CrossChainScript.sol";
+import {Transporter} from "../../contracts/transporter/Transporter.sol";
+import {HubTransporter} from "../../contracts/transporter/HubTransporter.sol";
+import {SpokeTransporter} from  "../../contracts/transporter/SpokeTransporter.sol";
 
 contract TransporterFixture is Script, CrossChainScript {
     // Deployment

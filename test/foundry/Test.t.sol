@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.2;
 
-contract Test {
+import {Test} from "forge-std/Test.sol";
+
+contract _Test is Test {
     
 }

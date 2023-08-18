@@ -1,7 +1,7 @@
 [profile.default]
 remappings = [
-    'forge-std/=./lib/forge-std/src/',
-    '@openzeppelin/=./node_modules/@openzeppelin/',
+    'forge-std/=lib/forge-std/src/',
+    '@openzeppelin/=node_modules/@openzeppelin/',
 ]
 optimizer = true
 optimizer_runs = 500000
