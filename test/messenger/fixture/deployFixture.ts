@@ -108,9 +108,12 @@ async function deploy(
 
   const dispatcher = await Dispatcher.deploy(
     transporter,
-    defaultRoutes,
     chainId
   ) as IDispatcher
+
+  for (const route of defaultRoutes) {
+    await dispatcher.setRoute(route.chainId, route.messageFee, route.maxBundleMessages)
+  }
 
   const executor = await ExecutorManger.deploy(transporter, chainId) as IExecutorManager
 

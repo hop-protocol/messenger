@@ -9,7 +9,7 @@
     "compile": "forge build",
     "hardhat-compile": "npx hardhat compile",
     "compile-all": "npm run compile && npm run hardhat-compile",
-    "test": "npx hardhat test",
+    "test": "forge test -vvv",
     "deploy": "forge script scripts/transporter/Deploy.t.sol --broadcast",
     "lint": "eslint .",
     "prettier": "prettier '**/*.{json,sol,md}' --check"
