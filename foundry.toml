@@ -5,7 +5,7 @@ remappings = [
 ]
 optimizer = true
 optimizer_runs = 500000
-solc_version = '0.8.19'
+solc_version = '0.8.21'
 libs = ['node_modules', 'lib']
 
 src = 'contracts'
@@ -13,46 +13,4 @@ test = 'test/foundry'
 out = 'artifacts/forge'
 cache_path='cache/forge'
 
-# [profile.transporter]
-# src = 'packages/transporter/contracts'
-# out = 'packages/transporter/forge-artifacts'
-# test = 'packages/transporter/test/foundry'
-
-# [profile.messenger]
-# src = 'packages/messenger/contracts'
-# out = 'packages/messenger/forge-artifacts'
-# test = 'packages/messenger/test/foundry'
-
-# [profile.connectors]
-# src = 'packages/connectors/contracts'
-# out = 'packages/connectors/forge-artifacts'
-# test = 'packages/connectors/test/foundry'
-
-# [profile.aliases]
-# src = 'packages/aliases/contracts'
-# out = 'packages/aliases/forge-artifacts'
-# test = 'packages/aliases/test/foundry'
-
-# [profile.erc5164]
-# src = 'packages/erc5164/contracts'
-# out = 'packages/erc5164/forge-artifacts'
-# test = 'packages/erc5164/test/foundry'
-
-# [profile.shared-solidity]
-# src = 'packages/shared-solidity/contracts'
-# out = 'packages/shared-solidity/forge-artifacts'
-# test = 'packages/shared-solidity/test/foundry'
-
-# cache_path = 'forge-cache'
-# allow_paths = ['./', '../', '../../node_modules']
-
-# ignored_error_codes = [8261]
-
-# [fuzz]
-# runs = 10000
-# max_test_rejects = 60000
-
-# [profile.intense.fuzz]
-# verbosity = 3
-# runs = 100000
-# max_test_rejects = 600000
+rpc_endpoints = {mainnet = "${RPC_ENDPOINT_MAINNET}", goerli = "${RPC_ENDPOINT_GOERLI}", optimism_goerli = "${RPC_ENDPOINT_OPTIMISM_GOERLI}", base_goerli = "${RPC_ENDPOINT_BASE_GOERLI}" }
