@@ -47,24 +47,16 @@ contract Dispatcher is Ownable, EIP712, OverridableChainId, ICrossChainFees {
 
     /* config */
     address public transporter;
-    mapping(uint256 => RouteData) public routeData;
+    mapping(uint256 => uint256) public messageFeeForChainId;
+    mapping(uint256 => uint256) public maxBundleMessagesForChainId;
 
     /* state */
     mapping(uint256 => bytes32) public pendingBundleNonceForChainId;
     mapping(uint256 => bytes32[]) public pendingMessageIdsForChainId;
     mapping(uint256 => uint256) public pendingFeesForChainId;
 
-    constructor(
-        address _transporter,
-        Route[] memory routes
-    )
-        EIP712("Dispatcher", "1")
-    {
+    constructor(address _transporter) EIP712("Dispatcher", "1") {
         transporter = _transporter;
-        for (uint256 i = 0; i < routes.length; i++) {
-            Route memory route = routes[i];
-            setRoute(route);
-        }
     }
 
     function dispatchMessage(
@@ -76,9 +68,14 @@ contract Dispatcher is Ownable, EIP712, OverridableChainId, ICrossChainFees {
         payable
         returns (bytes32)
     {
-        RouteData memory _routeData = routeData[toChainId];
-        if (_routeData.maxBundleMessages == 0) revert InvalidRoute(toChainId);
-        if (_routeData.messageFee != msg.value) revert IncorrectFee(_routeData.messageFee, msg.value);
+        // RouteData memory _routeData = routeData[toChainId];
+        uint256 maxBundleMessages = maxBundleMessagesForChainId[toChainId];
+        if (maxBundleMessages == 0) revert InvalidRoute(toChainId);
+
+        {
+            uint256 messageFee = messageFeeForChainId[toChainId];
+            if (messageFee != msg.value) revert IncorrectFee(messageFee, msg.value);
+        }
 
         uint256 fromChainId = getChainId();
         bytes32[] storage pendingMessageIds = pendingMessageIdsForChainId[toChainId];
@@ -101,7 +98,7 @@ contract Dispatcher is Ownable, EIP712, OverridableChainId, ICrossChainFees {
         emit MessageSent(messageId, msg.sender, toChainId, to, data);
         emit MessageBundled(pendingBundleNonce, treeIndex, messageId);
 
-        if (pendingMessageIds.length >= _routeData.maxBundleMessages) {
+        if (pendingMessageIds.length >= maxBundleMessages) {
             _commitPendingBundle(toChainId);
         }
 
@@ -112,10 +109,9 @@ contract Dispatcher is Ownable, EIP712, OverridableChainId, ICrossChainFees {
         if (pendingMessageIdsForChainId[toChainId].length == 0) revert NoPendingBundle();
 
         pendingFeesForChainId[toChainId] += msg.value;
-        
-        RouteData memory _routeData = routeData[toChainId];
-        uint256 numMessages = _routeData.maxBundleMessages;
-        uint256 messageFee = _routeData.messageFee;
+
+        uint256 numMessages = maxBundleMessagesForChainId[toChainId];
+        uint256 messageFee = messageFeeForChainId[toChainId];
 
         uint256 fullBundleFee = messageFee * numMessages;
         if (fullBundleFee > pendingFeesForChainId[toChainId]) {
@@ -153,16 +149,17 @@ contract Dispatcher is Ownable, EIP712, OverridableChainId, ICrossChainFees {
         ITransportLayer(transporter).dispatchCommitment{value: bundleFees}(toChainId, bundleId);
     }
 
-    function setRoute(Route memory route) public onlyOwner {
-        if (route.chainId == 0) revert NoZeroChainId();
-        if (route.messageFee == 0) revert NoZeroMessageFee();
-        if (route.maxBundleMessages == 0) revert NoZeroMaxBundleMessages();
+    function setRoute(uint256 chainId, uint256 messageFee, uint256 maxBundleMessages) public onlyOwner {
+        if (chainId == 0) revert NoZeroChainId();
+        if (messageFee == 0) revert NoZeroMessageFee();
+        if (maxBundleMessages == 0) revert NoZeroMaxBundleMessages();
 
-        if (pendingBundleNonceForChainId[route.chainId] == 0) {
-            pendingBundleNonceForChainId[route.chainId] = initialBundleNonce(route.chainId);
+        if (pendingBundleNonceForChainId[chainId] == 0) {
+            pendingBundleNonceForChainId[chainId] = initialBundleNonce(chainId);
         }
-        _commitPendingBundle(route.chainId);
-        routeData[route.chainId] = RouteData(route.messageFee, route.maxBundleMessages);
+        _commitPendingBundle(chainId);
+        messageFeeForChainId[chainId] = messageFee;
+        maxBundleMessagesForChainId[chainId] = maxBundleMessages;
     }
 
     /* Getters */
@@ -180,7 +177,7 @@ contract Dispatcher is Ownable, EIP712, OverridableChainId, ICrossChainFees {
         for (uint256 i = 0; i < chainIds.length; i++) {
             uint256 chainId = chainIds[i];
             if (chainId != thisChainId) {
-                fee += routeData[chainId].messageFee;
+                fee += messageFeeForChainId[chainId];
             }
         }
         return fee;
