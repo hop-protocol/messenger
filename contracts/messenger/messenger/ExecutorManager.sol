@@ -32,7 +32,7 @@ contract ExecutorManager is Ownable, OverridableChainId {
     // messageReceiver -> transporter
     mapping(address => address) public registedTransporters;
     // transporter -> fromChainId -> bundleId -> verified status
-    mapping(address => mapping(uint256 => mapping(bytes32 => bool))) public verifiedBundleIdes;
+    mapping(address => mapping(uint256 => mapping(bytes32 => bool))) public verifiedBundleIds;
     address public verificationManager;
     mapping(bytes32 => Bitmap) private spentMessagesForBundleNonce;
 
@@ -100,7 +100,7 @@ contract ExecutorManager is Ownable, OverridableChainId {
         bool verified = ITransportLayer(transportLayer).isCommitmentProven(fromChainId, bundleId);
         if (!verified) revert ProveBundleFailed(transportLayer, fromChainId, bundleNonce);
 
-        verifiedBundleIdes[defaultTransporter][fromChainId][bundleId] = true;
+        verifiedBundleIds[defaultTransporter][fromChainId][bundleId] = true;
         emit BundleProven(fromChainId, bundleNonce, bundleRoot, bundleId);
     }
 
@@ -122,7 +122,7 @@ contract ExecutorManager is Ownable, OverridableChainId {
         }
 
         bytes32 bundleId = MessengerLib.getBundleId(fromChainId, getChainId(), bundleNonce, bundleRoot);
-        return verifiedBundleIdes[transporter][fromChainId][bundleId];
+        return verifiedBundleIds[transporter][fromChainId][bundleId];
     }
 
     function setDefaultTransporter(address verifier) external onlyOwner {

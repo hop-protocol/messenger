@@ -5,15 +5,8 @@ import "../messenger/Dispatcher.sol";
 
 contract MockDispatcher is Dispatcher {
     uint256 public mockChainId;
-
-    constructor(
-        address transporter,
-        Route[] memory routes,
-        uint256 _mockChainId
-    ) Dispatcher (
-        transporter,
-        routes
-    ) {
+    
+    constructor(address transporter, uint256 _mockChainId) Dispatcher (transporter) {
         mockChainId = _mockChainId;
     }
 
