@@ -25,6 +25,8 @@ import {console} from "forge-std/console.sol";
 contract LiquidityHub_Test is MessengerFixture {
     using MessengerEventParser for Vm.Log[];
     using LiquidityHubEventParser for Vm.Log[];
+    using LiquidityHubEventParser for TransferSentEvent;
+    using LiquidityHubEventParser for TransferBondedEvent;
 
     uint256[] public chainIds;
     mapping(uint256 => IERC20) public tokenForChainId;
@@ -106,7 +108,7 @@ contract LiquidityHub_Test is MessengerFixture {
                 uint256 counterpartChainId = chainIds[j];
                 if (counterpartChainId == chainId) continue;
                 IERC20 counterpartToken = tokenForChainId[counterpartChainId];
-                liquidityHub.initTokenBus(token, counterpartChainId, counterpartToken);
+                liquidityHub.initTokenBus(token, counterpartChainId, counterpartToken, 1000000000000000);
             }
         }
         vm.stopPrank();
@@ -239,6 +241,7 @@ contract LiquidityHub_Test is MessengerFixture {
 
         TransferSentEvent[] memory transferSentEvents = logs.getTransferSentEvents();
         TransferSentEvent memory transferSentEvent = transferSentEvents[0];
+        transferSentEvent.printEvent();
         vm.stopPrank();
 
         return transferSentEvent;
@@ -246,7 +249,7 @@ contract LiquidityHub_Test is MessengerFixture {
 
     function bond(address bonder, TransferSentEvent memory transferSentEvent) internal crossChainBroadcast returns (TransferBondedEvent memory) {
         vm.startPrank(bonder);
-        uint256 fromChainId = transferSentEvent.fromChainId;
+        uint256 fromChainId = transferSentEvent.chainId;
         on(fromChainId);
         LiquidityHub fromLiquidityHub = liquidityHubForChainId[fromChainId];
         bytes32 tokenBusId = transferSentEvent.tokenBusId;
@@ -258,14 +261,16 @@ contract LiquidityHub_Test is MessengerFixture {
         address to = transferSentEvent.to;
         uint256 amount = transferSentEvent.amount;
         uint256 minAmountOut = transferSentEvent.minAmountOut;
+        uint256 sourceClaimsSent = transferSentEvent.sourceClaimsSent;
 
         toToken.approve(address(toLiquidityHub), amount);
         vm.recordLogs();
-        toLiquidityHub.bondTransfer(tokenBusId, to, amount, minAmountOut, amount);
+        toLiquidityHub.bond(tokenBusId, to, amount, minAmountOut, sourceClaimsSent);
         Vm.Log[] memory logs = vm.getRecordedLogs();
 
         TransferBondedEvent[] memory transferBondedEvents = logs.getTransferBondedEvents();
         TransferBondedEvent memory transferBondedEvent = transferBondedEvents[0];
+        transferBondedEvent.printEvent();
         vm.stopPrank();
 
         return transferBondedEvent;

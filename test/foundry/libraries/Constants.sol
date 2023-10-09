@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.19;
 
-uint256 constant ONE_WEEK = 604800;
-
 uint256 constant HUB_CHAIN_ID = 5;
 uint256 constant SPOKE_CHAIN_ID_0 = 420;
 uint256 constant SPOKE_CHAIN_ID_1 = 84531;
@@ -29,3 +27,7 @@ uint256 constant DEFAULT_RESULT = 1234;
 bytes32 constant DEFAULT_COMMITMENT = 0x1234500000000000000000000000000000000000000000000000000000012345;
 uint256 constant DEFAULT_FROM_CHAIN_ID = SPOKE_CHAIN_ID_0;
 uint256 constant DEFAULT_TO_CHAIN_ID = HUB_CHAIN_ID;
+
+// General
+uint256 constant ONE_WEEK = 604800;
+uint256 constant BPS = 10_000;

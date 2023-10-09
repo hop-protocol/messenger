@@ -25,7 +25,8 @@ contract LiquidityHub is ICrossChainFees {
         address indexed to,
         uint256 amount,
         uint256 minAmountOut,
-        uint256 minClaimsSent
+        uint256 sourceClaimsSent,
+        uint256 bonus
     );
 
     event TransferBonded(
@@ -34,7 +35,8 @@ contract LiquidityHub is ICrossChainFees {
         address indexed to,
         uint256 amount,
         uint256 minAmountOut,
-        uint256 minClaimsSent
+        uint256 sourceClaimsSent,
+        uint256 fee
     );
 
     constructor(
@@ -45,12 +47,22 @@ contract LiquidityHub is ICrossChainFees {
         executor = _executor;
     }
 
-    function initTokenBus(IERC20 token, uint256 counterpartChainId, IERC20 counterpartToken) public returns (bytes32) {
+    function initTokenBus(
+        IERC20 token,
+        uint256 counterpartChainId,
+        IERC20 counterpartToken,
+        uint256 rateDelta
+    )
+        public
+        returns
+        (bytes32)
+    {
         bytes32 tokenBusId = TokenBusLib.getTokenBusId(block.chainid, token, counterpartChainId, counterpartToken);
         TokenBus storage tokenBus = tokenBuses[tokenBusId];
         tokenBus.token = token;
         tokenBus.counterpartChainId = counterpartChainId;
         tokenBus.counterpartToken = counterpartToken;
+        tokenBus.rateDelta = rateDelta;
 
         return tokenBusId;
     }
@@ -66,16 +78,19 @@ contract LiquidityHub is ICrossChainFees {
     {
         // Credit token bus
         TokenBus storage tokenBus = tokenBuses[tokenBusId];
-        // The minimum amount of claims to be sent by counterpart before this can be claimed.
-        uint256 minClaimsSent = tokenBus.claimsSent + amount;
-        tokenBus.claimsSent = minClaimsSent;
 
+        uint256 bonus = tokenBus.calcBonus(amount);
+        tokenBus.feeBalance -= bonus;
+        uint256 adjustedAmount = amount + bonus;
+
+        uint256 sourceClaimsSent = tokenBus.claimsSent + amount;
+        tokenBus.claimsSent = sourceClaimsSent;
         bytes32 claimId = getClaimId(
             tokenBusId,
             to,
-            amount,
+            adjustedAmount,
             minAmountOut,
-            minClaimsSent
+            sourceClaimsSent
         );
 
         // Send message
@@ -88,18 +103,19 @@ contract LiquidityHub is ICrossChainFees {
             claimId,
             tokenBusId,
             to,
-            amount,
+            adjustedAmount,
             minAmountOut,
-            minClaimsSent
+            sourceClaimsSent,
+            bonus
         );
     }
 
-    function bondTransfer(
+    function bond(
         bytes32 tokenBusId,
         address to,
         uint256 amount,
         uint256 minAmountOut,
-        uint256 minClaimsSent
+        uint256 sourceClaimsSent
     )
         external
     {
@@ -110,22 +126,31 @@ contract LiquidityHub is ICrossChainFees {
             to,
             amount,
             minAmountOut,
-            minClaimsSent
+            sourceClaimsSent
         );
 
         TokenBus storage tokenBus = tokenBuses[tokenBusId];
+
+        uint256 fee = tokenBus.calcFee(amount, sourceClaimsSent);
         if (tokenBus.claimPosted[claimId]) {
             tokenBus.pendingBalances[to].sub(block.timestamp, amount);
             tokenBus.balance[to] -= amount;    
+        } else {
+            fee = tokenBus.calcFee(amount, sourceClaimsSent);
         }
-        tokenBus.pendingBalances[msg.sender].add(block.timestamp, amount);
-        tokenBus.balance[msg.sender] += amount;
-        tokenBus.minClaimsSent[msg.sender].set(block.timestamp, minClaimsSent);
+
+        uint256 adjustedAmount = amount - fee;
+
+        address bonder = msg.sender;
+        tokenBus.pendingBalances[bonder].add(block.timestamp, adjustedAmount);
+        tokenBus.balance[bonder] += adjustedAmount;
+        tokenBus.minClaimsSent[bonder].set(block.timestamp, sourceClaimsSent);
 
         tokenBus.claimPosted[claimId] = true;
         tokenBus.claimsReceived += amount;
+        tokenBus.feeBalance += fee;
 
-        IERC20(tokenBus.token).transferFrom(msg.sender, to, amount);
+        IERC20(tokenBus.token).transferFrom(bonder, to, adjustedAmount);
 
         emit TransferBonded(
             claimId,
@@ -133,7 +158,8 @@ contract LiquidityHub is ICrossChainFees {
             to,
             amount,
             minAmountOut,
-            minClaimsSent
+            sourceClaimsSent,
+            fee
         );
     }
 
@@ -142,7 +168,7 @@ contract LiquidityHub is ICrossChainFees {
         address to,
         uint256 amount,
         uint256 minAmountOut,
-        uint256 minClaimsSent
+        uint256 sourceClaimsSent
     )
         external
     {
@@ -151,7 +177,7 @@ contract LiquidityHub is ICrossChainFees {
             to,
             amount,
             minAmountOut,
-            minClaimsSent
+            sourceClaimsSent
         );
 
         TokenBus storage tokenBus = tokenBuses[tokenBusId];
@@ -162,17 +188,19 @@ contract LiquidityHub is ICrossChainFees {
 
         // Credit recipient
         address bonder = address(0); // ToDo
-        address recipient = bonder == address(0) ? bonder : to;
+        address recipient = bonder == address(0) ? to : bonder;
 
         tokenBus.pendingBalances[recipient].add(block.timestamp, amount);
         tokenBus.balance[recipient] += amount;
-        tokenBus.minClaimsSent[recipient].set(block.timestamp, minClaimsSent);
+        tokenBus.minClaimsSent[recipient].set(block.timestamp, sourceClaimsSent);
     }
 
     function withdrawClaims(bytes32 tokenBusId, address recipient, uint256 window) external {
         // ToDo: set min window age
         TokenBus storage tokenBus = tokenBuses[tokenBusId];
-        tokenBus.withdrawClaims(recipient, window);
+        uint256 withdrawalAmount = tokenBus.getWithdrawableBalance(recipient, window);
+        tokenBus.balance[recipient] -= withdrawalAmount;
+        IERC20(tokenBus.token).transfer(recipient, withdrawalAmount);
     }
 
     function challengeClaim() external {
@@ -197,9 +225,10 @@ contract LiquidityHub is ICrossChainFees {
         address to,
         uint256 amount,
         uint256 minAmountOut,
-        uint256 minClaimsSent
+        uint256 sourceClaimsSent
     )
         public
+        pure
         returns (bytes32)
     {
         return keccak256(
@@ -208,7 +237,7 @@ contract LiquidityHub is ICrossChainFees {
                 to,
                 amount,
                 minAmountOut,
-                minClaimsSent
+                sourceClaimsSent
             )
         );
     }
