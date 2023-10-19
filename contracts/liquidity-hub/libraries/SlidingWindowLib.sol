@@ -36,6 +36,19 @@ library SlidingWindowLib {
         return window.value[slot];
     }
 
+    function totalSince(SlidingWindow storage window, uint256 timestamp) internal view returns (uint256) {
+        uint256 startSlot = slotForTimestamp(timestamp);
+        uint256 currentSlot = slotForTimestamp(block.timestamp);
+        require(currentSlot >= startSlot, "SlidingWindowLib: timestamp is in the future");
+
+        uint256 total = 0;
+        for (uint256 i = startSlot; i <= currentSlot; i++) {
+            total += window.value[i];
+        }
+
+        return total;
+    }
+
     function slotForTimestamp(uint256 timestamp) internal pure returns (uint256) {
         return timestamp / SLOT_SIZE;
     }

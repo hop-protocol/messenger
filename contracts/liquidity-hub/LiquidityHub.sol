@@ -8,8 +8,9 @@ import {TokenBusLib, TokenBus} from "./libraries/TokenBusLib.sol";
 import {IMessageDispatcher} from "../ERC5164/IMessageDispatcher.sol";
 import {IMessageExecutor} from "../ERC5164/IMessageExecutor.sol";
 import {ICrossChainFees} from "../messenger/interfaces/ICrossChainFees.sol";
+import {StakingRegistry} from "./StakingRegistry.sol";
 
-contract LiquidityHub is ICrossChainFees {
+contract LiquidityHub is StakingRegistry, ICrossChainFees {
     using SafeERC20 for IERC20;
     using TokenBusLib for TokenBus;
     using SlidingWindowLib for SlidingWindow;
@@ -18,6 +19,9 @@ contract LiquidityHub is ICrossChainFees {
     IMessageExecutor public executor;
 
     mapping(bytes32 => TokenBus) internal tokenBuses;
+
+    IERC20 public hopToken;
+    uint256 public minBonderStake = 100_000 * 10e18;
 
     event TransferSent(
         bytes32 indexed claimId,
@@ -119,7 +123,12 @@ contract LiquidityHub is ICrossChainFees {
     )
         external
     {
-        // ToDo: replay protection
+        // ToDo: Replay protection
+
+        TokenBus storage tokenBus = tokenBuses[tokenBusId];
+
+        uint256 stakeBalance = getStakedBalance("Bonder", msg.sender);
+        require(stakeBalance >= minBonderStake, "LiquidityHub: insufficient stake");
 
         bytes32 claimId = getClaimId(
             tokenBusId,
@@ -128,8 +137,6 @@ contract LiquidityHub is ICrossChainFees {
             minAmountOut,
             sourceClaimsSent
         );
-
-        TokenBus storage tokenBus = tokenBuses[tokenBusId];
 
         uint256 fee = tokenBus.calcFee(amount, sourceClaimsSent);
         if (tokenBus.claimPosted[claimId]) {
