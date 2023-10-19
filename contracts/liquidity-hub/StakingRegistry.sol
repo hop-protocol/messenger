@@ -187,38 +187,11 @@ contract StakingRegistry is Ownable {
     {
         bytes32 challengeId = getChallengeId(role, staker, penalty, challenger, slashingData);
         Challenge storage challenge = challenges[challengeId];
-        require(challenge.staker != address(0), "StakeRegistry: challenge does not exists");
-        require(challenge.isSettled == false, "StakeRegistry: challenge already isSettled");
-        uint256 currentAppealEth = challenge.appealEth;
-        require(currentAppealEth < fullAppeal, "StakeRegistry: appeal is full");
+        require(challenge.appealEth < fullAppeal, "StakeRegistry: appeal is full");
         require(block.timestamp > challenge.lastUpdated + challengePeriod, "StakeRegistry: challengePeriod not passed");
-        challenge.isSettled = true;
 
-        uint256 challengeEth = challenge.challengeEth;
-        uint256 appealEth = challenge.appealEth;
-        uint256 totalEth = challengeEth + appealEth;
-
-        if (challenge.isAppealed) {
-            // Challenge is unsuccessful
-            uint256 ethForStaker = (challengeEth / 2) + appealEth;
-            uint256 ethForHopDao = challengeEth - ethForStaker;
-
-            withdrawableEth[staker] += ethForStaker;
-            withdrawableEth[owner()] += ethForHopDao;
-        } else {
-            // Challenge is successful
-            uint256 hopForChallenger = penalty / 2;
-            uint256 hopForDao = penalty - hopForChallenger;
-
-            Stake storage stake = stakes[role][staker];
-            stake.hopStake -= penalty;
-            assert(stake.challengeCount > 0);
-            stake.challengeCount -= 1;
-
-            hopToken.safeTransfer(owner(), hopForDao);
-            hopToken.safeTransfer(challenge.challenger, hopForChallenger);
-            withdrawableEth[challenge.challenger] += totalEth;
-        }
+        bool challengeWon = !challenge.isAppealed;
+        _settleChallenge(challengeId, challengeWon);
     }
 
     function acceptSlash(
@@ -230,34 +203,43 @@ contract StakingRegistry is Ownable {
         public
         payable
     {
-        address staker = msg.sender;
-        bytes32 challengeId = getChallengeId(role, staker, penalty, challenger, slashingData);
+        bytes32 challengeId = getChallengeId(role, msg.sender, penalty, challenger, slashingData);
+        _settleChallenge(challengeId, true);
+    }
+
+    function forceSettleChallenge(bytes32 challengeId, bool challengeWon) public onlyOwner {
+        _settleChallenge(challengeId, true);
+    }
+
+    function _settleChallenge(bytes32 challengeId, bool challengeWon) public {
         Challenge storage challenge = challenges[challengeId];
         require(challenge.staker != address(0), "StakeRegistry: challenge does not exists");
         require(challenge.isSettled == false, "StakeRegistry: challenge already isSettled");
         challenge.isSettled = true;
 
-        // Stake storage stake = stakes[role][staker];
-        uint256 challengeEth = challenge.challengeEth;
-        uint256 appealEth = challenge.appealEth;
-        uint256 totalEth = challengeEth + appealEth;
+        if (challengeWon) {
+            uint256 penalty = challenge.penalty;
+            uint256 hopForChallenger = penalty / 2;
+            uint256 hopForDao = penalty - hopForChallenger;
 
-        // Challenge is successful
-        uint256 hopForChallenger = penalty / 2;
-        uint256 hopForDao = penalty - hopForChallenger;
+            Stake storage stake = stakes[challenge.role][challenge.staker];
+            stake.hopStake -= penalty;
+            assert(stake.challengeCount > 0);
+            stake.challengeCount -= 1;
 
-        Stake storage stake = stakes[role][staker];
-        stake.hopStake -= penalty;
-        assert(stake.challengeCount > 0);
-        stake.challengeCount -= 1;
+            hopToken.safeTransfer(owner(), hopForDao);
+            hopToken.safeTransfer(challenge.challenger, hopForChallenger);
+            uint256 totalEth = challenge.challengeEth + challenge.appealEth;
+            withdrawableEth[challenge.challenger] += totalEth;
+        } else {
+            uint256 challengeEth = challenge.challengeEth;
+            uint256 appealEth = challenge.appealEth;
+            uint256 ethForStaker = (challengeEth / 2) + appealEth;
+            uint256 ethForHopDao = challengeEth - ethForStaker;
 
-        hopToken.safeTransfer(owner(), hopForDao);
-        hopToken.safeTransfer(challenge.challenger, hopForChallenger);
-        withdrawableEth[challenge.challenger] += totalEth;
-    }
-
-    function forceSettleChallenge() public onlyOwner {
-        // ToDo
+            withdrawableEth[challenge.staker] += ethForStaker;
+            withdrawableEth[owner()] += ethForHopDao;
+        }
     }
 
     function isStaked(bytes32 role, address staker) public view returns (bool) {
