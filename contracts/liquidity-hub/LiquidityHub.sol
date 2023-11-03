@@ -29,8 +29,7 @@ contract LiquidityHub is StakingRegistry, ICrossChainFees {
         address indexed to,
         uint256 amount,
         uint256 minAmountOut,
-        uint256 sourceClaimsSent,
-        uint256 bonus
+        uint256 totalSent
     );
 
     event TransferBonded(
@@ -39,8 +38,7 @@ contract LiquidityHub is StakingRegistry, ICrossChainFees {
         address indexed to,
         uint256 amount,
         uint256 minAmountOut,
-        uint256 sourceClaimsSent,
-        uint256 fee
+        uint256 totalSent
     );
 
     constructor(
@@ -75,7 +73,10 @@ contract LiquidityHub is StakingRegistry, ICrossChainFees {
         bytes32 tokenBusId,
         address to,
         uint256 amount,
-        uint256 minAmountOut
+        uint256 minAmountOut,
+        bytes32 attestedCheckpoint,
+        uint256 attestedNonce,
+        uint256 attestedTotalSent
     )
         external
         payable
@@ -83,19 +84,44 @@ contract LiquidityHub is StakingRegistry, ICrossChainFees {
         // Credit token bus
         TokenBus storage tokenBus = tokenBuses[tokenBusId];
 
-        uint256 bonus = tokenBus.calcBonus(amount);
-        tokenBus.feeBalance -= bonus;
-        uint256 adjustedAmount = amount + bonus;
-
-        uint256 sourceClaimsSent = tokenBus.claimsSent + amount;
-        tokenBus.claimsSent = sourceClaimsSent;
+        uint256 fee = tokenBus.calcFee(amount, attestedTotalSent);
+        uint256 adjustedAmount = amount - fee;
+        uint256 totalSent = tokenBus.totalSent + adjustedAmount;
+        uint256 nonce = tokenBus.checkpoints.length;
         bytes32 claimId = getClaimId(
             tokenBusId,
             to,
             adjustedAmount,
             minAmountOut,
-            sourceClaimsSent
+            totalSent,
+            nonce,
+            attestedCheckpoint,
+            attestedNonce,
+            attestedTotalSent
         );
+        bytes32 previousCheckpoint = tokenBus.checkpoints[nonce - 1];
+        bytes32 thisCheckpoint = keccak256(abi.encodePacked(previousCheckpoint, claimId));
+
+        tokenBus.feeBalance += fee;
+        tokenBus.totalSent = totalSent;
+        tokenBus.checkpoints.push(thisCheckpoint);
+        tokenBus.totalSentAtCheckpoint[thisCheckpoint] = totalSent;
+
+        uint256 pendingFreedAmount = 0;
+        uint256 totalWithdrawable = tokenBus.totalWithdrawable + amount;
+        if (attestedCheckpoint != bytes32(0)) {
+            require(tokenBus.claimCheckpoints.length > attestedNonce, "LiquidityHub: attested nonce to high");
+            require(tokenBus.claimCheckpoints[attestedNonce] == attestedCheckpoint, "LiquidityHub: attested checkpoint mismatch");
+            uint256 totalClaimsAtCheckpoint = tokenBus.totalClaimsAtCheckpoint[attestedCheckpoint];
+            require(totalClaimsAtCheckpoint == attestedTotalSent, "LiquidityHub: attested checkpoint mismatch");
+
+            if (totalClaimsAtCheckpoint < totalWithdrawable) {
+                pendingFreedAmount =  totalWithdrawable - totalClaimsAtCheckpoint;
+            }
+        }
+
+        tokenBus.totalWithdrawable = totalWithdrawable;
+        tokenBus.pendingWithdrawable.add(block.timestamp, pendingFreedAmount);
 
         // Send message
         bytes memory confirmClaimData = abi.encodeWithSelector(this.confirmClaim.selector, claimId);
@@ -109,8 +135,7 @@ contract LiquidityHub is StakingRegistry, ICrossChainFees {
             to,
             adjustedAmount,
             minAmountOut,
-            sourceClaimsSent,
-            bonus
+            totalSent
         );
     }
 
@@ -119,45 +144,58 @@ contract LiquidityHub is StakingRegistry, ICrossChainFees {
         address to,
         uint256 amount,
         uint256 minAmountOut,
-        uint256 sourceClaimsSent
+        uint256 totalSent,
+        uint256 nonce,
+        bytes32 attestedCheckpoint,
+        uint256 attestedNonce,
+        uint256 attestedTotalSent
     )
         external
     {
         // ToDo: Replay protection
-
         TokenBus storage tokenBus = tokenBuses[tokenBusId];
 
         uint256 stakeBalance = getStakedBalance("Bonder", msg.sender);
         require(stakeBalance >= minBonderStake, "LiquidityHub: insufficient stake");
+        require(tokenBus.checkpoints[attestedNonce] == attestedCheckpoint, "LiquidityHub: attested checkpoint mismatch");
+        require(tokenBus.totalSentAtCheckpoint[attestedCheckpoint] == attestedTotalSent, "attested total sent mismatch");
+        require(tokenBus.claimCheckpoints.length + 1 == nonce, "LiquidityHub: bond nonce mismatch");
 
         bytes32 claimId = getClaimId(
             tokenBusId,
             to,
             amount,
             minAmountOut,
-            sourceClaimsSent
+            totalSent,
+            nonce,
+            attestedCheckpoint,
+            attestedNonce,
+            attestedTotalSent
         );
 
-        uint256 fee = tokenBus.calcFee(amount, sourceClaimsSent);
-        if (tokenBus.claimPosted[claimId]) {
-            tokenBus.pendingBalances[to].sub(block.timestamp, amount);
-            tokenBus.balance[to] -= amount;    
+        uint256 bonus = tokenBus.calcBonus(amount, totalSent, tokenBus.totalSent);
+        uint256 adjustedAmount = amount + bonus;
+        uint256 claimPostedAt = block.timestamp;
+        if (tokenBus.claimPostedAt[claimId] == 0) {
+            tokenBus.claimPostedAt[claimId] = claimPostedAt;
+            tokenBus.feeBalance -= bonus;
+            tokenBus.totalClaims += adjustedAmount;
+
+            bytes32 previousBondedCheckpoint = tokenBus.checkpoints[nonce - 1];
+            bytes32 nextBondedCheckpoint = keccak256(abi.encodePacked(previousBondedCheckpoint, claimId));
+            tokenBus.claimCheckpoints.push(nextBondedCheckpoint);
+            tokenBus.totalClaimsAtCheckpoint[nextBondedCheckpoint] += totalSent;
         } else {
-            fee = tokenBus.calcFee(amount, sourceClaimsSent);
+            claimPostedAt = tokenBus.claimPostedAt[claimId];
+            tokenBus.pendingBalances[to].sub(claimPostedAt, adjustedAmount);
+            tokenBus.balance[to] -= adjustedAmount;
         }
 
-        uint256 adjustedAmount = amount - fee;
+        tokenBus.pendingBalances[msg.sender].add(claimPostedAt, adjustedAmount);
+        tokenBus.balance[msg.sender] += adjustedAmount;
+        tokenBus.minTotalSent[msg.sender].set(claimPostedAt, totalSent);
 
-        address bonder = msg.sender;
-        tokenBus.pendingBalances[bonder].add(block.timestamp, adjustedAmount);
-        tokenBus.balance[bonder] += adjustedAmount;
-        tokenBus.minClaimsSent[bonder].set(block.timestamp, sourceClaimsSent);
-
-        tokenBus.claimPosted[claimId] = true;
-        tokenBus.claimsReceived += amount;
-        tokenBus.feeBalance += fee;
-
-        IERC20(tokenBus.token).transferFrom(bonder, to, adjustedAmount);
+        IERC20(tokenBus.token).transferFrom(msg.sender, to, adjustedAmount);
 
         emit TransferBonded(
             claimId,
@@ -165,8 +203,7 @@ contract LiquidityHub is StakingRegistry, ICrossChainFees {
             to,
             amount,
             minAmountOut,
-            sourceClaimsSent,
-            fee
+            totalSent
         );
     }
 
@@ -175,7 +212,11 @@ contract LiquidityHub is StakingRegistry, ICrossChainFees {
         address to,
         uint256 amount,
         uint256 minAmountOut,
-        uint256 sourceClaimsSent
+        uint256 totalSent,
+        uint256 nonce,
+        bytes32 attestedCheckpoint,
+        uint256 attestedNonce,
+        uint256 attestedTotalSent
     )
         external
     {
@@ -184,22 +225,26 @@ contract LiquidityHub is StakingRegistry, ICrossChainFees {
             to,
             amount,
             minAmountOut,
-            sourceClaimsSent
+            totalSent,
+            nonce,
+            attestedCheckpoint,
+            attestedNonce,
+            attestedTotalSent
         );
 
         TokenBus storage tokenBus = tokenBuses[tokenBusId];
-        require(!tokenBus.claimPosted[claimId], "LiquidityHub: Claim already posted");
-        tokenBus.claimPosted[claimId] = true;
+        require(tokenBus.claimPostedAt[claimId] == 0, "LiquidityHub: Claim already posted");
+        tokenBus.claimPostedAt[claimId] = block.timestamp;
 
-        tokenBus.claimsReceived += amount;
+        uint256 bonus = tokenBus.calcBonus(amount, totalSent, tokenBus.totalSent);
+        uint256 adjustedAmount = amount + bonus;
+        tokenBus.feeBalance -= bonus;
+        tokenBus.totalClaims += adjustedAmount;
 
         // Credit recipient
-        address bonder = address(0); // ToDo
-        address recipient = bonder == address(0) ? to : bonder;
-
-        tokenBus.pendingBalances[recipient].add(block.timestamp, amount);
-        tokenBus.balance[recipient] += amount;
-        tokenBus.minClaimsSent[recipient].set(block.timestamp, sourceClaimsSent);
+        tokenBus.pendingBalances[to].add(block.timestamp, amount);
+        tokenBus.balance[to] += amount;
+        tokenBus.minTotalSent[to].set(block.timestamp, totalSent);
     }
 
     function withdrawClaims(bytes32 tokenBusId, address recipient, uint256 window) external {
@@ -207,18 +252,15 @@ contract LiquidityHub is StakingRegistry, ICrossChainFees {
         TokenBus storage tokenBus = tokenBuses[tokenBusId];
         uint256 withdrawalAmount = tokenBus.getWithdrawableBalance(recipient, window);
         tokenBus.balance[recipient] -= withdrawalAmount;
-        IERC20(tokenBus.token).transfer(recipient, withdrawalAmount);
+        tokenBus.totalWithdrawn += withdrawalAmount;
+        IERC20(tokenBus.token).safeTransfer(recipient, withdrawalAmount);
     }
 
-    function challengeClaim() external {
+    function replaceClaim() external {
 
     }
 
     function confirmClaim(bytes32 claim) external {
-
-    }
-
-    function resolveChallenge() external {
 
     }
 
@@ -232,7 +274,11 @@ contract LiquidityHub is StakingRegistry, ICrossChainFees {
         address to,
         uint256 amount,
         uint256 minAmountOut,
-        uint256 sourceClaimsSent
+        uint256 totalSent,
+        uint256 nonce,
+        bytes32 attestedCheckpoint,
+        uint256 attestedNonce,
+        uint256 attestedTotalSent
     )
         public
         pure
@@ -244,7 +290,11 @@ contract LiquidityHub is StakingRegistry, ICrossChainFees {
                 to,
                 amount,
                 minAmountOut,
-                sourceClaimsSent
+                totalSent,
+                nonce,
+                attestedCheckpoint,
+                attestedNonce,
+                attestedTotalSent
             )
         );
     }
@@ -262,4 +312,3 @@ contract LiquidityHub is StakingRegistry, ICrossChainFees {
         return (block.chainid, tokenBus.token, tokenBus.counterpartChainId, tokenBus.counterpartToken);
     }
 }
-

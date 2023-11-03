@@ -208,7 +208,7 @@ contract StakingRegistry is Ownable {
     }
 
     function forceSettleChallenge(bytes32 challengeId, bool challengeWon) public onlyOwner {
-        _settleChallenge(challengeId, true);
+        _settleChallenge(challengeId, challengeWon);
     }
 
     function _settleChallenge(bytes32 challengeId, bool challengeWon) public {
