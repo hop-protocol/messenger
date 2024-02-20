@@ -13,4 +13,4 @@ test = 'test/foundry'
 out = 'artifacts/forge'
 cache_path='cache/forge'
 
-rpc_endpoints = {mainnet = "${RPC_ENDPOINT_MAINNET}", goerli = "${RPC_ENDPOINT_GOERLI}", optimism_goerli = "${RPC_ENDPOINT_OPTIMISM_GOERLI}", base_goerli = "${RPC_ENDPOINT_BASE_GOERLI}" }
+rpc_endpoints = {mainnet = "${RPC_ENDPOINT_MAINNET}", sepolia = "${RPC_ENDPOINT_SEPOLIA}", optimism_sepolia = "${RPC_ENDPOINT_OPTIMISM_SEPOLIA}", base_sepolia = "${RPC_ENDPOINT_BASE_SEPOLIA}" }

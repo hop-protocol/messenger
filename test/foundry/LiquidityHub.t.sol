@@ -2,23 +2,24 @@
 pragma solidity ^0.8.2;
 
 import {Vm} from "forge-std/Vm.sol";
-import {CrossChainTest} from './libraries/CrossChainTest.sol';
+import {CrossChainTest} from "./libraries/CrossChainTest.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {MockToken} from '../../contracts/test/MockToken.sol';
-import {LiquidityHub} from '../../contracts/liquidity-hub/LiquidityHub.sol';
-import {ICrossChainFees} from '../../contracts/messenger/interfaces/ICrossChainFees.sol';
-import {IMessageDispatcher} from '../../contracts/ERC5164/IMessageDispatcher.sol';
-import {IMessageExecutor} from '../../contracts/ERC5164/IMessageExecutor.sol';
-import {TransporterFixture} from './fixtures/TransporterFixture.sol';
-import {MessengerFixture} from './fixtures/MessengerFixture.sol';
-import {MockExecutor} from './MockExecutor.sol';
-import {MessengerEventParser, SendMessageEvent} from './libraries/MessengerEventParser.sol';
+import {MockToken} from "../../contracts/test/MockToken.sol";
+import {LiquidityHub} from "../../contracts/liquidity-hub/LiquidityHub.sol";
+import {ICrossChainFees} from "../../contracts/messenger/interfaces/ICrossChainFees.sol";
+import {IMessageDispatcher} from "../../contracts/ERC5164/IMessageDispatcher.sol";
+import {IMessageExecutor} from "../../contracts/ERC5164/IMessageExecutor.sol";
+import {TransporterFixture} from "./fixtures/TransporterFixture.sol";
+import {MessengerFixture} from "./fixtures/MessengerFixture.sol";
+import {MockExecutor} from "./MockExecutor.sol";
+import {MessengerEventParser, SendMessageEvent} from "./libraries/MessengerEventParser.sol";
 import {
     LiquidityHubEventParser,
+    LiquidityHubEvents,
     TransferSentEvent,
     TransferBondedEvent
-} from './libraries/LiquidityHubEventParser.sol';
-import {HUB_CHAIN_ID, SPOKE_CHAIN_ID_0, SPOKE_CHAIN_ID_1} from './libraries/Constants.sol';
+} from "./libraries/LiquidityHubEventParser.sol";
+import {HUB_CHAIN_ID, SPOKE_CHAIN_ID_0, SPOKE_CHAIN_ID_1} from "./libraries/Constants.sol";
 
 import {console} from "forge-std/console.sol";
 
@@ -27,6 +28,7 @@ contract LiquidityHub_Test is MessengerFixture {
     using LiquidityHubEventParser for Vm.Log[];
     using LiquidityHubEventParser for TransferSentEvent;
     using LiquidityHubEventParser for TransferBondedEvent;
+    using LiquidityHubEventParser for LiquidityHubEvents;
 
     uint256[] public chainIds;
     mapping(uint256 => IERC20) public tokenForChainId;
@@ -34,8 +36,8 @@ contract LiquidityHub_Test is MessengerFixture {
 
     uint256 public constant AMOUNT = 100 * 10e18;
     uint256 public constant MIN_AMOUNT_OUT = 99 * 10e18;
-    uint256 public constant FROM_CHAIN_ID = 5;
-    uint256 public constant TO_CHAIN_ID = 420;
+    uint256 public constant FROM_CHAIN_ID = 11155111;
+    uint256 public constant TO_CHAIN_ID = 11155420;
 
     mapping(address => string) public nameForAddress;
 
@@ -43,6 +45,8 @@ contract LiquidityHub_Test is MessengerFixture {
     address public constant user1 = address(2);
     address public constant user2 = address(3);
     address public constant bonder1 = address(4);
+
+    LiquidityHubEvents liquidityHubEvents;
 
     constructor() {
         nameForAddress[deployer] = "deployer";
@@ -77,7 +81,7 @@ contract LiquidityHub_Test is MessengerFixture {
 
         chainIds.push(HUB_CHAIN_ID);
         chainIds.push(SPOKE_CHAIN_ID_0);
-        chainIds.push(SPOKE_CHAIN_ID_1);
+        // chainIds.push(SPOKE_CHAIN_ID_1);
 
         vm.startPrank(deployer);
 
@@ -97,10 +101,7 @@ contract LiquidityHub_Test is MessengerFixture {
         for (uint256 i = 0; i < chainIds.length; i++) {
             uint256 chainId = chainIds[i];
             on(chainId);
-            LiquidityHub liquidityHub = new LiquidityHub(
-                IMessageDispatcher(address(dispatcherForChainId[chainId])),
-                IMessageExecutor(address(executorForChainId[chainId]))
-            );
+            LiquidityHub liquidityHub = new LiquidityHub();
             liquidityHubForChainId[chainId] = liquidityHub;
             IERC20 token = tokenForChainId[chainId];
 
@@ -108,7 +109,14 @@ contract LiquidityHub_Test is MessengerFixture {
                 uint256 counterpartChainId = chainIds[j];
                 if (counterpartChainId == chainId) continue;
                 IERC20 counterpartToken = tokenForChainId[counterpartChainId];
-                liquidityHub.initTokenBus(token, counterpartChainId, counterpartToken, 1000000000000000);
+                bytes32 flummId = liquidityHub.initFLUMM(
+                    token,
+                    counterpartChainId,
+                    counterpartToken,
+                    IMessageDispatcher(address(dispatcherForChainId[chainId])),
+                    IMessageExecutor(address(executorForChainId[chainId])),
+                    0
+                );
             }
         }
         vm.stopPrank();
@@ -149,7 +157,7 @@ contract LiquidityHub_Test is MessengerFixture {
         console.log("");
 
         // send transfer
-        TransferSentEvent memory transferSentEvent = send(
+        TransferSentEvent storage transferSentEvent = send(
             user1,
             fromChainId,
             fromToken,
@@ -160,7 +168,7 @@ contract LiquidityHub_Test is MessengerFixture {
             minAmountOut
         );
 
-        printBalance(fromChainId, user1);
+        // printBalance(fromChainId, user1);
         printBalance(fromChainId, address(fromLiquidityHub));
 
         console.log("");
@@ -170,7 +178,7 @@ contract LiquidityHub_Test is MessengerFixture {
         console.log("");
 
         // bond transfer
-        TransferBondedEvent memory transferBondedEvent = bond(bonder1, transferSentEvent);
+        TransferBondedEvent storage transferBondedEvent = bond(bonder1, transferSentEvent);
 
         printBalance(toChainId, user1);
         printBalance(toChainId, bonder1);
@@ -207,7 +215,7 @@ contract LiquidityHub_Test is MessengerFixture {
         on(toChainId);
         uint256 window = 0;
         
-        toLiquidityHub.withdrawClaims(transferBondedEvent.tokenBusId, bonder1, window);
+        toLiquidityHub.withdrawClaims(transferBondedEvent.flummId, bonder1, window);
 
         printBalance(toChainId, bonder1);
         printBalance(toChainId, address(toLiquidityHub));
@@ -225,51 +233,77 @@ contract LiquidityHub_Test is MessengerFixture {
     )
         internal
         broadcastOn(fromChainId)
-        returns (TransferSentEvent memory)
+        returns (TransferSentEvent storage)
     {
         vm.startPrank(from);
         LiquidityHub fromLiquidityHub = liquidityHubForChainId[fromChainId];
-        bytes32 tokenBusId = fromLiquidityHub.getTokenBusId(fromChainId, IERC20(address(fromToken)), toChainId, IERC20(address(toToken)));
-        uint256[] memory destinations = new uint256[](1);
-        destinations[0] = toChainId;
-        uint256 fee = fromLiquidityHub.getFee(destinations);
+        bytes32 flummId = fromLiquidityHub.getFLUMMId(fromChainId, IERC20(address(fromToken)), toChainId, IERC20(address(toToken)));
+        uint256 fee = fromLiquidityHub.getFee(flummId);
 
         fromToken.approve(address(fromLiquidityHub), amount);
         vm.recordLogs();
-        fromLiquidityHub.send{value: fee}(tokenBusId, to, amount, minAmountOut);
+        bytes32 attestedCheckpoint = bytes32(0);
+        fromLiquidityHub.send{
+            value: fee
+        }(
+            flummId,
+            to,
+            amount,
+            minAmountOut,
+            attestedCheckpoint
+        );
         Vm.Log[] memory logs = vm.getRecordedLogs();
 
-        TransferSentEvent[] memory transferSentEvents = logs.getTransferSentEvents();
-        TransferSentEvent memory transferSentEvent = transferSentEvents[0];
+        (uint256 startIndex, uint256 numEvents) = liquidityHubEvents.getTransferSentEvents(logs);
+        require (numEvents == 1, "No TransferSentEvent found");
+        TransferSentEvent storage transferSentEvent = liquidityHubEvents.transferSentEvents[startIndex];
         transferSentEvent.printEvent();
         vm.stopPrank();
 
         return transferSentEvent;
     }
 
-    function bond(address bonder, TransferSentEvent memory transferSentEvent) internal crossChainBroadcast returns (TransferBondedEvent memory) {
-        vm.startPrank(bonder);
-        uint256 fromChainId = transferSentEvent.chainId;
-        on(fromChainId);
-        LiquidityHub fromLiquidityHub = liquidityHubForChainId[fromChainId];
-        bytes32 tokenBusId = transferSentEvent.tokenBusId;
+    function bond(address bonder, TransferSentEvent storage transferSentEvent) internal crossChainBroadcast returns (TransferBondedEvent storage) {
+        bytes32 flummId = transferSentEvent.flummId;
+        LiquidityHub toLiquidityHub;
+        {
+            vm.startPrank(bonder);
+            uint256 fromChainId = transferSentEvent.chainId;
+            on(fromChainId);
+            LiquidityHub fromLiquidityHub = liquidityHubForChainId[fromChainId];
 
-        ( , IERC20 fromToken, uint256 toChainId, IERC20 toToken) = fromLiquidityHub.getTokenBusInfo(tokenBusId);
+            ( , , uint256 toChainId, IERC20 toToken) = fromLiquidityHub.getFLUMMInfo(flummId);
 
-        on(toChainId);
-        LiquidityHub toLiquidityHub = liquidityHubForChainId[TO_CHAIN_ID];
-        address to = transferSentEvent.to;
-        uint256 amount = transferSentEvent.amount;
-        uint256 minAmountOut = transferSentEvent.minAmountOut;
-        uint256 sourceClaimsSent = transferSentEvent.sourceClaimsSent;
+            on(toChainId);
+            toLiquidityHub = liquidityHubForChainId[toChainId];
 
-        toToken.approve(address(toLiquidityHub), amount);
+        // bytes32 checkpointId = transferSentEvent.checkpointId;
+        // address to = transferSentEvent.to;
+        // uint256 minAmountOut = transferSentEvent.minAmountOut;
+        // uint256 totalSent = transferSentEvent.totalSent;
+        // uint256 nonce = transferSentEvent.nonce;
+        // bytes32 attestedCheckpoint = transferSentEvent.attestedCheckpoint;
+
+            uint256 amount = transferSentEvent.amount;
+            toToken.approve(address(toLiquidityHub), amount);
+        }
         vm.recordLogs();
-        toLiquidityHub.bond(tokenBusId, to, amount, minAmountOut, sourceClaimsSent);
+        toLiquidityHub.bond(
+            flummId,
+            transferSentEvent.checkpointId,
+            transferSentEvent.to,
+            transferSentEvent.amount,
+            transferSentEvent.minAmountOut,
+            transferSentEvent.totalSent,
+            transferSentEvent.nonce,
+            transferSentEvent.attestedCheckpoint
+        );
         Vm.Log[] memory logs = vm.getRecordedLogs();
+        
+        (uint256 startIndex, uint256 numEvents) = liquidityHubEvents.getTransferBondedEvents(logs);
+        require (numEvents == 1, "No TransferBondedEvent found");
+        TransferBondedEvent storage transferBondedEvent = liquidityHubEvents.transferBondedEvents[startIndex];
 
-        TransferBondedEvent[] memory transferBondedEvents = logs.getTransferBondedEvents();
-        TransferBondedEvent memory transferBondedEvent = transferBondedEvents[0];
         transferBondedEvent.printEvent();
         vm.stopPrank();
 

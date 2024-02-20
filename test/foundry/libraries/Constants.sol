@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.19;
 
-uint256 constant HUB_CHAIN_ID = 5;
-uint256 constant SPOKE_CHAIN_ID_0 = 420;
-uint256 constant SPOKE_CHAIN_ID_1 = 84531;
+uint256 constant HUB_CHAIN_ID = 11155111;
+uint256 constant SPOKE_CHAIN_ID_0 = 11155420;
+uint256 constant SPOKE_CHAIN_ID_1 = 84532;
 
 address constant TREASURY = 0x1111000000000000000000000000000000001111;
 address constant PUBLIC_GOODS = 0x2222000000000000000000000000000000002222;

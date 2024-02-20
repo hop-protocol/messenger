@@ -19,17 +19,26 @@ contract CrossChainTest is Test {
     constructor() {
         // set non-standard chains
         setChain(
-            "base_goerli", 
+            "optimism_sepolia", 
             Chain(
-                "Base Goerli",
-                84531,
-                "base_goerli",
-                vm.envString("RPC_ENDPOINT_BASE_GOERLI")
+                "Optimism Sepolia",
+                11155420,
+                "optimism_sepolia",
+                vm.envString("RPC_ENDPOINT_OPTIMISM_SEPOLIA")
+            )
+        );
+        setChain(
+            "base_sepolia", 
+            Chain(
+                "Base Sepolia",
+                84532,
+                "base_sepolia",
+                vm.envString("RPC_ENDPOINT_BASE_SEPOLIA")
             )
         );
 
         // Hacky way to burn forkId 0
-        Chain memory chain = getChain("goerli");
+        Chain memory chain = getChain("sepolia");
         uint256 forkId = vm.createFork(chain.rpcUrl);
     }
 

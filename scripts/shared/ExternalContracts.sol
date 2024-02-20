@@ -10,15 +10,15 @@ struct OPStackConfig {
 
 library ExternalContracts {
     function getOpStackConfig(uint256 chainId) internal view returns (OPStackConfig memory) {
-        if (chainId == 420) {
+        if (chainId == 11155420) {
             return OPStackConfig(
-                0x5086d1eEF304eb5284A0f6720f79403b4e9bE294,
+                0x58Cc85b8D04EA49cC6DBd3CbFFd00B4B8D6cb3ef,
                 0x4200000000000000000000000000000000000007,
                 200_000
             );
-        } else if (chainId == 84531) {
+        } else if (chainId == 84532) {
             return OPStackConfig(
-                0x8e5693140eA606bcEB98761d9beB1BC87383706D,
+                0xC34855F4De64F1840e5686e64278da901e261f20,
                 0x4200000000000000000000000000000000000007,
                 200_000
             );

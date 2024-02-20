@@ -6,117 +6,133 @@ import {console} from "forge-std/Console.sol";
 
 struct TransferSentEvent{
     uint256 chainId;
-    bytes32 claimId;
-    bytes32 tokenBusId;
+    bytes32 flummId;
+    bytes32 checkpointId;
     address to;
     uint256 amount;
     uint256 minAmountOut;
-    uint256 sourceClaimsSent;
-    uint256 bonus;
+    uint256 totalSent;
+    uint256 nonce;
+    bytes32 attestedCheckpoint;
 }
 
 struct TransferBondedEvent{
     uint256 chainId;
     bytes32 claimId;
-    bytes32 tokenBusId;
+    bytes32 flummId;
     address to;
     uint256 amount;
     uint256 minAmountOut;
-    uint256 sourceClaimsSent;
-    uint256 fee;
+    uint256 totalSent;
+}
+
+struct LiquidityHubEvents {
+    TransferSentEvent[] transferSentEvents;
+    TransferBondedEvent[] transferBondedEvents;
 }
 
 /// @notice - WARNING: Do not switch chains before parsing logs. block.chainid is assigned to the event struct.
 library LiquidityHubEventParser {
-    function getTransferSentEvents(Vm.Log[] memory logs) internal view returns(TransferSentEvent[] memory) {
-        bytes32 eventSignature = keccak256(abi.encodePacked("TransferSent(bytes32,bytes32,address,uint256,uint256,uint256,uint256)"));
+    function getTransferSentEvents(
+        LiquidityHubEvents storage events,
+        Vm.Log[] memory logs
+    )
+        internal
+        returns(uint256 startIndex, uint256 numEvents)
+    {
+        bytes32 eventSignature = keccak256(abi.encodePacked("TransferSent(bytes32,bytes32,address,uint256,uint256,uint256,uint256,bytes32)"));
 
-        uint256 count = 0;
+        startIndex = events.transferSentEvents.length;
+        numEvents = 0;
         for (uint256 i = 0; i < logs.length; i++) {
+
             Vm.Log memory log = logs[i];
             if (log.topics[0] == eventSignature) {
-                count++;
-            }
-        }
-
-        TransferSentEvent[] memory transferSentEvents = new TransferSentEvent[](count);
-        uint256 j = 0;
-        for (uint256 i = 0; i < logs.length; i++) {
-            Vm.Log memory log = logs[i];
-            if (log.topics[0] == eventSignature) {
-                transferSentEvents[j].chainId = block.chainid;
-                transferSentEvents[j].claimId = log.topics[1];
-                transferSentEvents[j].tokenBusId = log.topics[2];
-                transferSentEvents[j].to = address(uint160(uint256(log.topics[3])));
                 (
-                    transferSentEvents[j].amount,
-                    transferSentEvents[j].minAmountOut,
-                    transferSentEvents[j].sourceClaimsSent,
-                    transferSentEvents[j].bonus
-                ) = abi.decode(log.data, (uint256, uint256, uint256, uint256));
-                j++;
+                    uint256 amount,
+                    uint256 minAmountOut,
+                    uint256 totalSent,
+                    uint256 nonce,
+                    bytes32 attestedCheckpoint
+                ) = abi.decode(log.data, (uint256,uint256,uint256,uint256,bytes32));
+
+                numEvents++;
+                events.transferSentEvents.push(TransferSentEvent(
+                    block.chainid,
+                    log.topics[1],
+                    log.topics[2],
+                    address(uint160(uint256(log.topics[3]))),
+                    amount,
+                    minAmountOut,
+                    totalSent,
+                    nonce,
+                    attestedCheckpoint
+                ));
             }
         }
-
-        return transferSentEvents;
     }
 
-    function getTransferBondedEvents(Vm.Log[] memory logs) internal view returns(TransferBondedEvent[] memory) {
-        bytes32 eventSignature = keccak256(abi.encodePacked("TransferBonded(bytes32,bytes32,address,uint256,uint256,uint256,uint256)"));
+    function getTransferBondedEvents(
+        LiquidityHubEvents storage events,
+        Vm.Log[] memory logs
+    )
+        internal
+        returns(uint256 startIndex, uint256 numEvents)
+    {
+        bytes32 eventSignature = keccak256(abi.encodePacked("TransferBonded(bytes32,bytes32,address,uint256,uint256,uint256)"));
 
-        uint256 count = 0;
+        startIndex = events.transferBondedEvents.length;
+        numEvents = 0;
         for (uint256 i = 0; i < logs.length; i++) {
             Vm.Log memory log = logs[i];
             if (log.topics[0] == eventSignature) {
-                count++;
-            }
-        }
-
-        TransferBondedEvent[] memory transferBondedEvents = new TransferBondedEvent[](count);
-        uint256 j = 0;
-        for (uint256 i = 0; i < logs.length; i++) {
-            Vm.Log memory log = logs[i];
-            if (log.topics[0] == eventSignature) {
-                transferBondedEvents[j].chainId = block.chainid;
-                transferBondedEvents[j].claimId = log.topics[1];
-                transferBondedEvents[j].tokenBusId = log.topics[2];
-                transferBondedEvents[j].to = address(uint160(uint256(log.topics[3])));
                 (
-                    transferBondedEvents[j].amount,
-                    transferBondedEvents[j].minAmountOut,
-                    transferBondedEvents[j].sourceClaimsSent,
-                    transferBondedEvents[j].fee
-                ) = abi.decode(log.data, (uint256, uint256, uint256, uint256));
-                j++;
+                    uint256 amount,
+                    uint256 minAmountOut,
+                    uint256 totalSent
+                ) = abi.decode(log.data, (uint256, uint256, uint256));
+
+                numEvents++;
+                events.transferBondedEvents.push(TransferBondedEvent(
+                    block.chainid,
+                    log.topics[1],
+                    log.topics[2],
+                    address(uint160(uint256(log.topics[3]))),
+                    amount,
+                    minAmountOut,
+                    totalSent
+                ));
             }
         }
 
-        return transferBondedEvents;
+        return (startIndex, numEvents);
     }
 
-    function printEvent(TransferSentEvent memory transferSentEvent) internal view {
+    function printEvent(TransferSentEvent storage transferSentEvent) internal view {
         console.log("");
-        console.log("TransferSent - %x", uint256(transferSentEvent.claimId));
+        console.log("TransferSent - %x", uint256(transferSentEvent.checkpointId));
         console.log("chainId %s", transferSentEvent.chainId);
-        console.log("tokenBusId %x", uint256(transferSentEvent.tokenBusId));
+        console.log("flummId %x", uint256(transferSentEvent.flummId));
+        console.log("checkpointId %x", uint256(transferSentEvent.checkpointId));
         console.log("to %s", transferSentEvent.to);
         console.log("amount %s", transferSentEvent.amount);
         console.log("minAmountOut %s", transferSentEvent.minAmountOut);
-        console.log("sourceClaimsSent %s", transferSentEvent.sourceClaimsSent);
-        console.log("bonus %s", transferSentEvent.bonus);
+        console.log("totalSent %s", transferSentEvent.totalSent);
+        console.log("nonce %s", transferSentEvent.nonce);
+        console.log("attestedCheckpoint %s", uint256(transferSentEvent.attestedCheckpoint));
+
         console.log("");
     }
 
-    function printEvent(TransferBondedEvent memory transferBondedEvent) internal view {
+    function printEvent(TransferBondedEvent storage transferBondedEvent) internal view {
         console.log("");
         console.log("TransferBonded - %x", uint256(transferBondedEvent.claimId));
         console.log("chainId %s", transferBondedEvent.chainId);
-        console.log("tokenBusId %x", uint256(transferBondedEvent.tokenBusId));
+        console.log("flummId %x", uint256(transferBondedEvent.flummId));
         console.log("to %s", transferBondedEvent.to);
         console.log("amount %s", transferBondedEvent.amount);
         console.log("minAmountOut %s", transferBondedEvent.minAmountOut);
-        console.log("sourceClaimsSent %s", transferBondedEvent.sourceClaimsSent);
-        console.log("fee %s", transferBondedEvent.fee);
+        console.log("totalSent %s", transferBondedEvent.totalSent);
         console.log("");
     }
 }

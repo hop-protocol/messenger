@@ -22,8 +22,8 @@ import {TransporterFixture} from "./TransporterFixture.sol";
 import {ITransportLayer} from "../../../contracts/messenger/interfaces/ITransportLayer.sol";
 
 contract MessengerFixture is TransporterFixture {
-    mapping(uint256 => MockExecutor) public executorForChainId;
     mapping(uint256 => Dispatcher) public dispatcherForChainId;
+    mapping(uint256 => MockExecutor) public executorForChainId;
 
     function deployMessengers(uint256[] memory _chainIds) public crossChainBroadcast {
         deployTransporters(_chainIds);
