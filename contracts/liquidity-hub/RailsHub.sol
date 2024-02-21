@@ -12,7 +12,7 @@ import {StakingRegistry} from "./StakingRegistry.sol";
 
 import {console} from "forge-std/console.sol";
 
-contract LiquidityHub is StakingRegistry {
+contract RailsHub is StakingRegistry {
     using SafeERC20 for IERC20;
     using PathLib for Path;
 

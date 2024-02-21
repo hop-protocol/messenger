@@ -65,10 +65,10 @@ library CheckpointLib {
     // }
 
     function pop(CheckpointChain storage chain, uint256 nonce, bytes32 checkpointId) internal {
-        require(checkpointId != bytes32(0), "LiquidityHub: checkpointId cannot be 0");
+        require(checkpointId != bytes32(0), "RailsHub: checkpointId cannot be 0");
         Checkpoint[] storage checkpoints = chain.checkpoints;
-        require(nonce < checkpoints.length, "LiquidityHub: invalid nonce");
-        require(checkpoints[nonce].checkpointId == checkpointId, "LiquidityHub: invalid checkpointId");
+        require(nonce < checkpoints.length, "RailsHub: invalid nonce");
+        require(checkpoints[nonce].checkpointId == checkpointId, "RailsHub: invalid checkpointId");
 
         if (checkpoints.length > nonce) {
             checkpoints.pop();

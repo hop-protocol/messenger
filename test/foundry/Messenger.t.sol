@@ -6,7 +6,7 @@ import {console} from "forge-std/console.sol";
 import {CrossChainTest} from './libraries/CrossChainTest.sol';
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {MockToken} from '../../contracts/test/MockToken.sol';
-import {LiquidityHub} from '../../contracts/liquidity-hub/LiquidityHub.sol';
+import {RailsHub} from '../../contracts/liquidity-hub/RailsHub.sol';
 import {ICrossChainFees} from '../../contracts/messenger/interfaces/ICrossChainFees.sol';
 import {IMessageDispatcher} from '../../contracts/ERC5164/IMessageDispatcher.sol';
 import {IMessageExecutor} from '../../contracts/ERC5164/IMessageExecutor.sol';

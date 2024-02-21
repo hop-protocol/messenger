@@ -28,15 +28,15 @@ struct TransferBondedEvent{
     uint256 totalSent;
 }
 
-struct LiquidityHubEvents {
+struct RailsHubEvents {
     TransferSentEvent[] transferSentEvents;
     TransferBondedEvent[] transferBondedEvents;
 }
 
 /// @notice - WARNING: Do not switch chains before parsing logs. block.chainid is assigned to the event struct.
-library LiquidityHubEventParser {
+library RailsHubEventParser {
     function getTransferSentEvents(
-        LiquidityHubEvents storage events,
+        RailsHubEvents storage events,
         Vm.Log[] memory logs
     )
         internal
@@ -76,7 +76,7 @@ library LiquidityHubEventParser {
     }
 
     function getTransferBondedEvents(
-        LiquidityHubEvents storage events,
+        RailsHubEvents storage events,
         Vm.Log[] memory logs
     )
         internal

@@ -9,7 +9,7 @@ import {IMessageDispatcher} from "../../ERC5164/IMessageDispatcher.sol";
 import {IMessageExecutor} from "../../ERC5164/IMessageExecutor.sol";
 import {ICrossChainFees} from "../../messenger/interfaces/ICrossChainFees.sol";
 import {CheckpointLib, Checkpoint, CheckpointChain} from "./CheckpointLib.sol";
-import {ILiquidityHub} from "../interfaces/ILiquidityHub.sol";
+import {IRailsHub} from "../interfaces/IRailsHub.sol";
 import {StakingRegistry} from "../StakingRegistry.sol";
 
 import {console} from "forge-std/console.sol";
@@ -152,7 +152,7 @@ library PathLib {
 
 
         // Send message
-        bytes memory confirmCheckpointData = abi.encodeWithSelector(ILiquidityHub.confirmCheckpoint.selector, checkpointId);
+        bytes memory confirmCheckpointData = abi.encodeWithSelector(IRailsHub.confirmCheckpoint.selector, checkpointId);
         path.dispatcher.dispatchMessage{value: msg.value}(path.counterpartChainId, address(this), confirmCheckpointData);
 
         // Collect tokens

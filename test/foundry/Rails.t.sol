@@ -5,7 +5,7 @@ import {Vm} from "forge-std/Vm.sol";
 import {CrossChainTest} from "./libraries/CrossChainTest.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {MockToken} from "../../contracts/test/MockToken.sol";
-import {LiquidityHub} from "../../contracts/liquidity-hub/LiquidityHub.sol";
+import {RailsHub} from "../../contracts/liquidity-hub/RailsHub.sol";
 import {ICrossChainFees} from "../../contracts/messenger/interfaces/ICrossChainFees.sol";
 import {IMessageDispatcher} from "../../contracts/ERC5164/IMessageDispatcher.sol";
 import {IMessageExecutor} from "../../contracts/ERC5164/IMessageExecutor.sol";
@@ -14,25 +14,25 @@ import {MessengerFixture} from "./fixtures/MessengerFixture.sol";
 import {MockExecutor} from "./MockExecutor.sol";
 import {MessengerEventParser, SendMessageEvent} from "./libraries/MessengerEventParser.sol";
 import {
-    LiquidityHubEventParser,
-    LiquidityHubEvents,
+    RailsHubEventParser,
+    RailsHubEvents,
     TransferSentEvent,
     TransferBondedEvent
-} from "./libraries/LiquidityHubEventParser.sol";
+} from "./libraries/RailsHubEventParser.sol";
 import {HUB_CHAIN_ID, SPOKE_CHAIN_ID_0, SPOKE_CHAIN_ID_1} from "./libraries/Constants.sol";
 
 import {console} from "forge-std/console.sol";
 
-contract LiquidityHub_Test is MessengerFixture {
+contract RailsHub_Test is MessengerFixture {
     using MessengerEventParser for Vm.Log[];
-    using LiquidityHubEventParser for Vm.Log[];
-    using LiquidityHubEventParser for TransferSentEvent;
-    using LiquidityHubEventParser for TransferBondedEvent;
-    using LiquidityHubEventParser for LiquidityHubEvents;
+    using RailsHubEventParser for Vm.Log[];
+    using RailsHubEventParser for TransferSentEvent;
+    using RailsHubEventParser for TransferBondedEvent;
+    using RailsHubEventParser for RailsHubEvents;
 
     uint256[] public chainIds;
     mapping(uint256 => IERC20) public tokenForChainId;
-    mapping(uint256 => LiquidityHub) public liquidityHubForChainId;
+    mapping(uint256 => RailsHub) public hubForChainId;
 
     uint256 public constant AMOUNT = 100 * 10e18;
     uint256 public constant MIN_AMOUNT_OUT = 99 * 10e18;
@@ -46,7 +46,7 @@ contract LiquidityHub_Test is MessengerFixture {
     address public constant user2 = address(3);
     address public constant bonder1 = address(4);
 
-    LiquidityHubEvents liquidityHubEvents;
+    RailsHubEvents hubEvents;
 
     constructor() {
         nameForAddress[deployer] = "deployer";
@@ -98,15 +98,15 @@ contract LiquidityHub_Test is MessengerFixture {
         for (uint256 i = 0; i < chainIds.length; i++) {
             uint256 chainId = chainIds[i];
             on(chainId);
-            LiquidityHub liquidityHub = new LiquidityHub();
-            liquidityHubForChainId[chainId] = liquidityHub;
+            RailsHub hub = new RailsHub();
+            hubForChainId[chainId] = hub;
             IERC20 token = tokenForChainId[chainId];
 
             for (uint256 j = 0; j < chainIds.length; j++) {
                 uint256 counterpartChainId = chainIds[j];
                 if (counterpartChainId == chainId) continue;
                 IERC20 counterpartToken = tokenForChainId[counterpartChainId];
-                bytes32 pathId = liquidityHub.initPath(
+                bytes32 pathId = hub.initPath(
                     token,
                     counterpartChainId,
                     counterpartToken,
@@ -119,7 +119,7 @@ contract LiquidityHub_Test is MessengerFixture {
         vm.stopPrank();
     }
 
-    function test_happyPathLiquidityHub() public crossChainBroadcast {
+    function test_happyPathRails() public crossChainBroadcast {
         uint256 fromChainId = FROM_CHAIN_ID;
         IERC20 fromToken = tokenForChainId[FROM_CHAIN_ID];
         uint256 toChainId = TO_CHAIN_ID;
@@ -127,10 +127,10 @@ contract LiquidityHub_Test is MessengerFixture {
         uint256 amount = AMOUNT;
         uint256 minAmountOut = MIN_AMOUNT_OUT;
 
-        LiquidityHub fromLiquidityHub = liquidityHubForChainId[FROM_CHAIN_ID];
-        LiquidityHub toLiquidityHub = liquidityHubForChainId[TO_CHAIN_ID];
-        nameForAddress[address(fromLiquidityHub)] = "fromLiquidityHub";
-        nameForAddress[address(toLiquidityHub)] = "toLiquidityHub";
+        RailsHub fromRailsHub = hubForChainId[FROM_CHAIN_ID];
+        RailsHub toRailsHub = hubForChainId[TO_CHAIN_ID];
+        nameForAddress[address(fromRailsHub)] = "fromRailsHub";
+        nameForAddress[address(toRailsHub)] = "toRailsHub";
 
         console.log("");
         console.log("====================================");
@@ -141,11 +141,11 @@ contract LiquidityHub_Test is MessengerFixture {
         on(fromChainId);
         printBalance(user1);
         printBalance(bonder1);
-        printBalance(address(fromLiquidityHub));
+        printBalance(address(fromRailsHub));
         on(toChainId);
         printBalance(user1);
         printBalance(bonder1);
-        printBalance(address(toLiquidityHub));
+        printBalance(address(toRailsHub));
 
         console.log("");
         console.log("====================================");
@@ -166,7 +166,7 @@ contract LiquidityHub_Test is MessengerFixture {
         );
 
         // printBalance(fromChainId, user1);
-        printBalance(fromChainId, address(fromLiquidityHub));
+        printBalance(fromChainId, address(fromRailsHub));
 
         console.log("");
         console.log("====================================");
@@ -198,7 +198,7 @@ contract LiquidityHub_Test is MessengerFixture {
             minAmountOut
         );
 
-        printBalance(toChainId, address(toLiquidityHub));
+        printBalance(toChainId, address(toRailsHub));
 
         // ToDo: advance time
 
@@ -217,7 +217,7 @@ contract LiquidityHub_Test is MessengerFixture {
         );
 
         printBalance(toChainId, bonder1);
-        printBalance(toChainId, address(toLiquidityHub));
+        printBalance(toChainId, address(toRailsHub));
     }
 
     function send(
@@ -235,14 +235,14 @@ contract LiquidityHub_Test is MessengerFixture {
         returns (TransferSentEvent storage)
     {
         vm.startPrank(from);
-        LiquidityHub fromLiquidityHub = liquidityHubForChainId[fromChainId];
-        bytes32 pathId = fromLiquidityHub.getPathId(fromChainId, IERC20(address(fromToken)), toChainId, IERC20(address(toToken)));
-        uint256 fee = fromLiquidityHub.getFee(pathId);
+        RailsHub fromRailsHub = hubForChainId[fromChainId];
+        bytes32 pathId = fromRailsHub.getPathId(fromChainId, IERC20(address(fromToken)), toChainId, IERC20(address(toToken)));
+        uint256 fee = fromRailsHub.getFee(pathId);
 
-        fromToken.approve(address(fromLiquidityHub), amount);
+        fromToken.approve(address(fromRailsHub), amount);
         vm.recordLogs();
         bytes32 attestedCheckpoint = bytes32(0);
-        fromLiquidityHub.send{
+        fromRailsHub.send{
             value: fee
         }(
             pathId,
@@ -253,9 +253,9 @@ contract LiquidityHub_Test is MessengerFixture {
         );
         Vm.Log[] memory logs = vm.getRecordedLogs();
 
-        (uint256 startIndex, uint256 numEvents) = liquidityHubEvents.getTransferSentEvents(logs);
+        (uint256 startIndex, uint256 numEvents) = hubEvents.getTransferSentEvents(logs);
         require (numEvents == 1, "No TransferSentEvent found");
-        TransferSentEvent storage transferSentEvent = liquidityHubEvents.transferSentEvents[startIndex];
+        TransferSentEvent storage transferSentEvent = hubEvents.transferSentEvents[startIndex];
         transferSentEvent.printEvent();
         vm.stopPrank();
 
@@ -264,23 +264,23 @@ contract LiquidityHub_Test is MessengerFixture {
 
     function bond(address bonder, TransferSentEvent storage transferSentEvent) internal crossChainBroadcast returns (TransferBondedEvent storage) {
         bytes32 pathId = transferSentEvent.pathId;
-        LiquidityHub toLiquidityHub;
+        RailsHub toRailsHub;
         {
             vm.startPrank(bonder);
             uint256 fromChainId = transferSentEvent.chainId;
             on(fromChainId);
-            LiquidityHub fromLiquidityHub = liquidityHubForChainId[fromChainId];
+            RailsHub fromRailsHub = hubForChainId[fromChainId];
 
-            ( , , uint256 toChainId, IERC20 toToken) = fromLiquidityHub.getPathInfo(pathId);
+            ( , , uint256 toChainId, IERC20 toToken) = fromRailsHub.getPathInfo(pathId);
 
             on(toChainId);
-            toLiquidityHub = liquidityHubForChainId[toChainId];
+            toRailsHub = hubForChainId[toChainId];
 
             uint256 amount = transferSentEvent.amount;
-            toToken.approve(address(toLiquidityHub), amount);
+            toToken.approve(address(toRailsHub), amount);
         }
         vm.recordLogs();
-        toLiquidityHub.bond(
+        toRailsHub.bond(
             pathId,
             transferSentEvent.checkpointId,
             transferSentEvent.to,
@@ -292,9 +292,9 @@ contract LiquidityHub_Test is MessengerFixture {
         );
         Vm.Log[] memory logs = vm.getRecordedLogs();
 
-        (uint256 startIndex, uint256 numEvents) = liquidityHubEvents.getTransferBondedEvents(logs);
+        (uint256 startIndex, uint256 numEvents) = hubEvents.getTransferBondedEvents(logs);
         require (numEvents == 1, "No TransferBondedEvent found");
-        TransferBondedEvent storage transferBondedEvent = liquidityHubEvents.transferBondedEvents[startIndex];
+        TransferBondedEvent storage transferBondedEvent = hubEvents.transferBondedEvents[startIndex];
 
         transferBondedEvent.printEvent();
         vm.stopPrank();
@@ -313,9 +313,9 @@ contract LiquidityHub_Test is MessengerFixture {
         broadcastOn(chainId)
     {
         vm.startPrank(bonder);
-        LiquidityHub liquidityHub = liquidityHubForChainId[chainId];
+        RailsHub hub = hubForChainId[chainId];
 
-        liquidityHub.withdrawAll(pathId, time);
+        hub.withdrawAll(pathId, time);
         vm.stopPrank();
     }
 }
