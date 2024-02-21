@@ -20,7 +20,7 @@ struct TransferSentEvent{
 struct TransferBondedEvent{
     uint256 chainId;
     uint256 timestamp;
-    bytes32 claimId;
+    bytes32 transferId;
     bytes32 pathId;
     address to;
     uint256 amount;
@@ -130,7 +130,7 @@ library RailsHubEventParser {
 
     function printEvent(TransferBondedEvent storage transferBondedEvent) internal view {
         console.log("");
-        console.log("TransferBonded - %x", uint256(transferBondedEvent.claimId));
+        console.log("TransferBonded - %x", uint256(transferBondedEvent.transferId));
         console.log("chainId %s", transferBondedEvent.chainId);
         console.log("pathId %x", uint256(transferBondedEvent.pathId));
         console.log("to %s", transferBondedEvent.to);
