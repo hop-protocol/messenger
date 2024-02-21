@@ -8,7 +8,7 @@ struct TransferSentEvent{
     uint256 chainId;
     uint256 timestamp;
     bytes32 pathId;
-    bytes32 checkpointId;
+    bytes32 checkpoint;
     address to;
     uint256 amount;
     uint256 minAmountOut;
@@ -114,10 +114,10 @@ library RailsHubEventParser {
 
     function printEvent(TransferSentEvent storage transferSentEvent) internal view {
         console.log("");
-        console.log("TransferSent - %x", uint256(transferSentEvent.checkpointId));
+        console.log("TransferSent - %x", uint256(transferSentEvent.checkpoint));
         console.log("chainId %s", transferSentEvent.chainId);
         console.log("pathId %x", uint256(transferSentEvent.pathId));
-        console.log("checkpointId %x", uint256(transferSentEvent.checkpointId));
+        console.log("checkpoint %x", uint256(transferSentEvent.checkpoint));
         console.log("to %s", transferSentEvent.to);
         console.log("amount %s", transferSentEvent.amount);
         console.log("minAmountOut %s", transferSentEvent.minAmountOut);

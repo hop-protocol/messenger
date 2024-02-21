@@ -282,7 +282,7 @@ contract RailsHub_Test is MessengerFixture {
         vm.recordLogs();
         toRailsHub.bond(
             pathId,
-            transferSentEvent.checkpointId,
+            transferSentEvent.checkpoint,
             transferSentEvent.to,
             transferSentEvent.amount,
             transferSentEvent.minAmountOut,
