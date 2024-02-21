@@ -14,8 +14,8 @@ import {StakingRegistry} from "../StakingRegistry.sol";
 
 import {console} from "forge-std/console.sol";
 
-struct FLUMM {
-    bytes32 flummId;
+struct Path {
+    bytes32 pathId;
     IERC20 token;
     IERC20 counterpartToken;
     uint256 counterpartChainId;
@@ -41,15 +41,15 @@ struct FLUMM {
     mapping(address => SlidingWindow) minTotalSent;
 }
 
-library FLUMMLib {
+library PathLib {
     using SafeCast for uint256;
     using SafeERC20 for IERC20;
     using SlidingWindowLib for SlidingWindow;
-    using FLUMMLib for FLUMM;
+    using PathLib for Path;
     using CheckpointLib for CheckpointChain;
 
     event TransferSent(
-        bytes32 indexed flummId,
+        bytes32 indexed pathId,
         bytes32 indexed checkpointId,
         address indexed to,
         uint256 amount,
@@ -61,7 +61,7 @@ library FLUMMLib {
 
     event TransferBonded(
         bytes32 indexed claimId,
-        bytes32 indexed flummId,
+        bytes32 indexed pathId,
         address indexed to,
         uint256 amount,
         uint256 minAmountOut,
@@ -69,8 +69,8 @@ library FLUMMLib {
     );
 
     function initialize(
-        FLUMM storage flumm,
-        bytes32 flummId,
+        Path storage path,
+        bytes32 pathId,
         IERC20 token,
         uint256 counterpartChainId,
         IERC20 counterpartToken,
@@ -81,22 +81,22 @@ library FLUMMLib {
     )
         public
     {
-        require(flumm.flummId == bytes32(0), "FLUMMLib: FLUMM already initialized");
-        bytes32 expectedFlummId = FLUMMLib.getFLUMMId(block.chainid, token, counterpartChainId, counterpartToken);
-        require(flummId == expectedFlummId, "FLUMMLib: unexpected FLUMM Id");
+        require(path.pathId == bytes32(0), "PathLib: Path already initialized");
+        bytes32 expectedFlummId = PathLib.getPathId(block.chainid, token, counterpartChainId, counterpartToken);
+        require(pathId == expectedFlummId, "PathLib: unexpected Path Id");
 
-        flumm.flummId = flummId;
-        flumm.token = token;
-        flumm.counterpartChainId = counterpartChainId;
-        flumm.counterpartToken = counterpartToken;
-        flumm.dispatcher = dispatcher;
-        flumm.executor = executor;
-        flumm.stakingRegistry = stakingRegistry;
-        flumm.rateDelta = rateDelta;
+        path.pathId = pathId;
+        path.token = token;
+        path.counterpartChainId = counterpartChainId;
+        path.counterpartToken = counterpartToken;
+        path.dispatcher = dispatcher;
+        path.executor = executor;
+        path.stakingRegistry = stakingRegistry;
+        path.rateDelta = rateDelta;
     }
 
     function send(
-        FLUMM storage flumm,
+        Path storage path,
         address to,
         uint256 amount,
         uint256 minAmountOut,
@@ -106,28 +106,28 @@ library FLUMMLib {
     {
         uint256 attestedTotalSent;
         if (attestedCheckpoint != bytes32(0)) {
-            attestedTotalSent = flumm.claims.getCheckpointData(attestedCheckpoint).totalSent;
+            attestedTotalSent = path.claims.getCheckpointData(attestedCheckpoint).totalSent;
         }
         uint256 adjustedAmount;
         uint256 totalSent;
         {
-            // Credit FLUMM
-            uint256 fee = flumm.calcFee(amount, attestedTotalSent);
+            // Credit Path
+            uint256 fee = path.calcFee(amount, attestedTotalSent);
             adjustedAmount = amount - fee;
-            require(adjustedAmount >= minAmountOut, "FLUMMLib: insufficient amount out");
-            totalSent = flumm.checkpoints.getTotalSent() + adjustedAmount;
+            require(adjustedAmount >= minAmountOut, "PathLib: insufficient amount out");
+            totalSent = path.checkpoints.getTotalSent() + adjustedAmount;
 
-            flumm.feeBalance += fee;
+            path.feeBalance += fee;
         }
 
         bytes32 checkpointId;
         {
-            uint256 nonce = flumm.nonce;
-            flumm.nonce++;
+            uint256 nonce = path.nonce;
+            path.nonce++;
 
 
             bytes32 claimId = getClaimId(
-                flumm.flummId,
+                path.pathId,
                 to,
                 adjustedAmount,
                 minAmountOut,
@@ -136,10 +136,10 @@ library FLUMMLib {
                 attestedCheckpoint
             );
 
-            checkpointId = flumm.checkpoints.push(claimId, totalSent);
+            checkpointId = path.checkpoints.push(claimId, totalSent);
 
             emit TransferSent(
-                flumm.flummId,
+                path.pathId,
                 checkpointId,
                 to,
                 adjustedAmount,
@@ -153,14 +153,14 @@ library FLUMMLib {
 
         // Send message
         bytes memory confirmCheckpointData = abi.encodeWithSelector(ILiquidityHub.confirmCheckpoint.selector, checkpointId);
-        flumm.dispatcher.dispatchMessage{value: msg.value}(flumm.counterpartChainId, address(this), confirmCheckpointData);
+        path.dispatcher.dispatchMessage{value: msg.value}(path.counterpartChainId, address(this), confirmCheckpointData);
 
         // Collect tokens
-        IERC20(flumm.token).safeTransferFrom(msg.sender, address(this), amount);
+        IERC20(path.token).safeTransferFrom(msg.sender, address(this), amount);
     }
 
     function postClaim(
-        FLUMM storage flumm,
+        Path storage path,
         bytes32 claimId,
         bytes32 checkpointId,
         uint256 totalSent
@@ -168,24 +168,24 @@ library FLUMMLib {
         internal
         returns (bool)
     {
-        flumm.claimPostedAt[claimId] = block.timestamp;
-        bytes32 calculatedCheckpointId = flumm.claims.push(claimId, totalSent);
+        path.claimPostedAt[claimId] = block.timestamp;
+        bytes32 calculatedCheckpointId = path.claims.push(claimId, totalSent);
 
-        require(checkpointId == calculatedCheckpointId, "FLUMMLib: invalid checkpoint");
+        require(checkpointId == calculatedCheckpointId, "PathLib: invalid checkpoint");
     }
 
     function removeClaim(
-        FLUMM storage flumm,
+        Path storage path,
         bytes32 checkpointId,
         uint256 nonce
     )
         internal
     {
-        flumm.claims.pop(nonce, checkpointId);
+        path.claims.pop(nonce, checkpointId);
     }
 
     function bond(
-        FLUMM storage flumm,
+        Path storage path,
         bytes32 checkpointId,
         address to,
         uint256 amount,
@@ -197,15 +197,15 @@ library FLUMMLib {
         internal
     {
         // ToDo: Check stake balance
-        // uint256 stakeBalance = flumm.stakingRegistry.getStakedBalance("Bonder", msg.sender);
-        // require(stakeBalance >= minBonderStake, "FLUMMLib: insufficient stake");
+        // uint256 stakeBalance = path.stakingRegistry.getStakedBalance("Bonder", msg.sender);
+        // require(stakeBalance >= minBonderStake, "PathLib: insufficient stake");
 
         if (attestedCheckpoint != bytes32(0)) {
-            require(flumm.checkpoints.isCheckpoint(attestedCheckpoint), "FLUMMLib: attested checkpoint mismatch");
+            require(path.checkpoints.isCheckpoint(attestedCheckpoint), "PathLib: attested checkpoint mismatch");
         }
 
         bytes32 claimId = getClaimId(
-            flumm.flummId,
+            path.pathId,
             to,
             amount,
             minAmountOut,
@@ -214,21 +214,21 @@ library FLUMMLib {
             attestedCheckpoint
         );
 
-        uint256 bonus = flumm.calcBonus(amount, totalSent, flumm.checkpoints.getTotalSent());
+        uint256 bonus = path.calcBonus(amount, totalSent, path.checkpoints.getTotalSent());
         uint256 adjustedAmount = amount + bonus;
 
-        flumm.postClaim(claimId, checkpointId, totalSent);
+        path.postClaim(claimId, checkpointId, totalSent);
 
-        uint256 balance = flumm.balance[msg.sender] + adjustedAmount;
-        flumm.balance[msg.sender] = balance;
-        flumm.withdrawable[msg.sender].set(block.timestamp, balance);
-        flumm.minTotalSent[msg.sender].set(block.timestamp, totalSent);
+        uint256 balance = path.balance[msg.sender] + adjustedAmount;
+        path.balance[msg.sender] = balance;
+        path.withdrawable[msg.sender].set(block.timestamp, balance);
+        path.minTotalSent[msg.sender].set(block.timestamp, totalSent);
 
-        IERC20(flumm.token).transferFrom(msg.sender, to, adjustedAmount);
+        IERC20(path.token).transferFrom(msg.sender, to, adjustedAmount);
 
         emit TransferBonded(
             claimId,
-            flumm.flummId,
+            path.pathId,
             to,
             amount,
             minAmountOut,
@@ -236,25 +236,25 @@ library FLUMMLib {
         );
     }
 
-    function withdraw(FLUMM storage flumm, uint256 amount, uint256 time) internal {
-        uint256 withdrawable = flumm.getWithdrawableBalance(msg.sender, time);
-        require(withdrawable >= amount, "FLUMMLib: insufficient withdrawable balance");
+    function withdraw(Path storage path, uint256 amount, uint256 time) internal {
+        uint256 withdrawable = path.getWithdrawableBalance(msg.sender, time);
+        require(withdrawable >= amount, "PathLib: insufficient withdrawable balance");
 
-        flumm.withdrawn[msg.sender] += amount;
-        IERC20(flumm.token).safeTransfer(msg.sender, amount);
+        path.withdrawn[msg.sender] += amount;
+        IERC20(path.token).safeTransfer(msg.sender, amount);
     }
 
-    function withdrawAll(FLUMM storage flumm, uint256 time) internal {
-        uint256 amount = flumm.getWithdrawableBalance(msg.sender, time);
+    function withdrawAll(Path storage path, uint256 time) internal {
+        uint256 amount = path.getWithdrawableBalance(msg.sender, time);
 
-        flumm.withdrawn[msg.sender] += amount;
-        IERC20(flumm.token).safeTransfer(msg.sender, amount);
+        path.withdrawn[msg.sender] += amount;
+        IERC20(path.token).safeTransfer(msg.sender, amount);
     }
 
     // on deposit
-    function calcFee(FLUMM storage flumm, uint256 amount, uint256 attestedTotalSent) internal view returns (uint256) {
+    function calcFee(Path storage path, uint256 amount, uint256 attestedTotalSent) internal view returns (uint256) {
         // if there is enough surplus for the claim, return 0 fee
-        uint256 totalSent = flumm.checkpoints.totalSent();
+        uint256 totalSent = path.checkpoints.totalSent();
         if (attestedTotalSent > totalSent + amount) return 0;
 
         uint256 startDeficit = attestedTotalSent - totalSent;
@@ -264,14 +264,14 @@ library FLUMMLib {
         }
 
         uint256 avgDeficit = (startDeficit + endDeficit) / 2;
-        uint256 rate = avgDeficit * flumm.rateDelta / 10e18;
+        uint256 rate = avgDeficit * path.rateDelta / 10e18;
         uint256 fee = amount * rate / 10e18;
 
         return fee;
     }
 
     // on withdrawal
-    function calcBonus(FLUMM storage flumm, uint256 amount, uint256 totalSent, uint256 attestedTotalSent) internal view returns (uint256) {
+    function calcBonus(Path storage path, uint256 amount, uint256 totalSent, uint256 attestedTotalSent) internal view returns (uint256) {
         // if liquidity was freed, calculate the bonus
         if (totalSent >= attestedTotalSent) return 0;
 
@@ -282,13 +282,13 @@ library FLUMMLib {
         }
 
         uint256 avgDeficit = (startDeficit + endDeficit) / 2;
-        uint256 rate = avgDeficit * flumm.rateDelta / 10e18;
+        uint256 rate = avgDeficit * path.rateDelta / 10e18;
         uint256 bonus = amount * rate / 10e18;
 
         return bonus;
     }
 
-    function getFLUMMId(uint256 chainId0, IERC20 token0, uint256 chainId1, IERC20 token1) internal view returns (bytes32) {
+    function getPathId(uint256 chainId0, IERC20 token0, uint256 chainId1, IERC20 token1) internal view returns (bytes32) {
         bool isAssending = chainId0 < chainId1;
 
         uint256 chainIdA = isAssending ? chainId0 : chainId1;
@@ -299,20 +299,20 @@ library FLUMMLib {
         return keccak256(abi.encodePacked(chainIdA, tokenA, chainIdB, tokenB));
     }
 
-    function getHead(FLUMM storage flumm) internal view returns (bytes32) {
-        uint256 chainLength = flumm.checkpoints.checkpoints.length;
+    function getHead(Path storage path) internal view returns (bytes32) {
+        uint256 chainLength = path.checkpoints.checkpoints.length;
         if (chainLength == 0) return bytes32(0);
-        return flumm.checkpoints.getCheckpointData(chainLength - 1).checkpointId;
+        return path.checkpoints.getCheckpointData(chainLength - 1).checkpointId;
     }
 
-    function getWithdrawableBalance(FLUMM storage flumm, address bonder, uint256 time) internal view returns (uint256) {
-        uint256 minTotalSent = flumm.minTotalSent[bonder].get(time);
-        uint256 withdrawable = flumm.withdrawable[bonder].get(time);
-        require(minTotalSent != 0, "FLUMMLib: Invalid time");
-        require(withdrawable != 0, "FLUMMLib: Invalid time");
+    function getWithdrawableBalance(Path storage path, address bonder, uint256 time) internal view returns (uint256) {
+        uint256 minTotalSent = path.minTotalSent[bonder].get(time);
+        uint256 withdrawable = path.withdrawable[bonder].get(time);
+        require(minTotalSent != 0, "PathLib: Invalid time");
+        require(withdrawable != 0, "PathLib: Invalid time");
 
-        uint256 totalSent = flumm.checkpoints.totalSent();
-        uint256 withdrawn = flumm.withdrawn[bonder];
+        uint256 totalSent = path.checkpoints.totalSent();
+        uint256 withdrawn = path.withdrawn[bonder];
         if (totalSent < minTotalSent || withdrawable < withdrawn) {
             return 0;
         } else {
@@ -321,7 +321,7 @@ library FLUMMLib {
     }
 
     function getClaimId(
-        bytes32 flummId,
+        bytes32 pathId,
         address to,
         uint256 amount,
         uint256 minAmountOut,
@@ -335,7 +335,7 @@ library FLUMMLib {
     {
         return keccak256(
             abi.encode(
-                flummId,
+                pathId,
                 to,
                 amount,
                 minAmountOut,
@@ -358,9 +358,9 @@ library FLUMMLib {
         return keccak256(abi.encode(previousHash, claimId, totalSent));
     }
 
-    function getFee(FLUMM storage flumm) internal view returns (uint256) {
+    function getFee(Path storage path) internal view returns (uint256) {
         uint256[] memory chainIds = new uint256[](1);
-        chainIds[0] = flumm.counterpartChainId;
-        return ICrossChainFees(address(flumm.dispatcher)).getFee(chainIds);
+        chainIds[0] = path.counterpartChainId;
+        return ICrossChainFees(address(path.dispatcher)).getFee(chainIds);
     }
 }

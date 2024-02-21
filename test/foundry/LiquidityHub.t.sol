@@ -106,7 +106,7 @@ contract LiquidityHub_Test is MessengerFixture {
                 uint256 counterpartChainId = chainIds[j];
                 if (counterpartChainId == chainId) continue;
                 IERC20 counterpartToken = tokenForChainId[counterpartChainId];
-                bytes32 flummId = liquidityHub.initFLUMM(
+                bytes32 pathId = liquidityHub.initPath(
                     token,
                     counterpartChainId,
                     counterpartToken,
@@ -212,7 +212,7 @@ contract LiquidityHub_Test is MessengerFixture {
             toChainId,
             bonder1,
             amount,
-            transferBondedEvent.flummId,
+            transferBondedEvent.pathId,
             transferBondedEvent.timestamp
         );
 
@@ -236,8 +236,8 @@ contract LiquidityHub_Test is MessengerFixture {
     {
         vm.startPrank(from);
         LiquidityHub fromLiquidityHub = liquidityHubForChainId[fromChainId];
-        bytes32 flummId = fromLiquidityHub.getFLUMMId(fromChainId, IERC20(address(fromToken)), toChainId, IERC20(address(toToken)));
-        uint256 fee = fromLiquidityHub.getFee(flummId);
+        bytes32 pathId = fromLiquidityHub.getPathId(fromChainId, IERC20(address(fromToken)), toChainId, IERC20(address(toToken)));
+        uint256 fee = fromLiquidityHub.getFee(pathId);
 
         fromToken.approve(address(fromLiquidityHub), amount);
         vm.recordLogs();
@@ -245,7 +245,7 @@ contract LiquidityHub_Test is MessengerFixture {
         fromLiquidityHub.send{
             value: fee
         }(
-            flummId,
+            pathId,
             to,
             amount,
             minAmountOut,
@@ -263,7 +263,7 @@ contract LiquidityHub_Test is MessengerFixture {
     }
 
     function bond(address bonder, TransferSentEvent storage transferSentEvent) internal crossChainBroadcast returns (TransferBondedEvent storage) {
-        bytes32 flummId = transferSentEvent.flummId;
+        bytes32 pathId = transferSentEvent.pathId;
         LiquidityHub toLiquidityHub;
         {
             vm.startPrank(bonder);
@@ -271,7 +271,7 @@ contract LiquidityHub_Test is MessengerFixture {
             on(fromChainId);
             LiquidityHub fromLiquidityHub = liquidityHubForChainId[fromChainId];
 
-            ( , , uint256 toChainId, IERC20 toToken) = fromLiquidityHub.getFLUMMInfo(flummId);
+            ( , , uint256 toChainId, IERC20 toToken) = fromLiquidityHub.getPathInfo(pathId);
 
             on(toChainId);
             toLiquidityHub = liquidityHubForChainId[toChainId];
@@ -281,7 +281,7 @@ contract LiquidityHub_Test is MessengerFixture {
         }
         vm.recordLogs();
         toLiquidityHub.bond(
-            flummId,
+            pathId,
             transferSentEvent.checkpointId,
             transferSentEvent.to,
             transferSentEvent.amount,
@@ -306,7 +306,7 @@ contract LiquidityHub_Test is MessengerFixture {
         uint256 chainId,
         address bonder,
         uint256 amount,
-        bytes32 flummId,
+        bytes32 pathId,
         uint256 time
     )
         internal
@@ -315,7 +315,7 @@ contract LiquidityHub_Test is MessengerFixture {
         vm.startPrank(bonder);
         LiquidityHub liquidityHub = liquidityHubForChainId[chainId];
 
-        liquidityHub.withdrawAll(flummId, time);
+        liquidityHub.withdrawAll(pathId, time);
         vm.stopPrank();
     }
 }

@@ -4,7 +4,7 @@ pragma solidity ^0.8.2;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {SlidingWindowLib, SlidingWindow} from "./libraries/SlidingWindowLib.sol";
-import {FLUMMLib, FLUMM} from "./libraries/FLUMMLib.sol";
+import {PathLib, Path} from "./libraries/PathLib.sol";
 import {IMessageDispatcher} from "../ERC5164/IMessageDispatcher.sol";
 import {IMessageExecutor} from "../ERC5164/IMessageExecutor.sol";
 // import {ICrossChainFees} from "../messenger/interfaces/ICrossChainFees.sol";
@@ -14,13 +14,13 @@ import {console} from "forge-std/console.sol";
 
 contract LiquidityHub is StakingRegistry {
     using SafeERC20 for IERC20;
-    using FLUMMLib for FLUMM;
+    using PathLib for Path;
 
-    mapping(bytes32 => FLUMM) internal flumms;
+    mapping(bytes32 => Path) internal paths;
 
     event TransferSent(
         bytes32 indexed claimId,
-        bytes32 indexed flummId,
+        bytes32 indexed pathId,
         address indexed to,
         uint256 amount,
         uint256 minAmountOut,
@@ -29,14 +29,14 @@ contract LiquidityHub is StakingRegistry {
 
     event TransferBonded(
         bytes32 indexed claimId,
-        bytes32 indexed flummId,
+        bytes32 indexed pathId,
         address indexed to,
         uint256 amount,
         uint256 minAmountOut,
         uint256 totalSent
     );
 
-    function initFLUMM(
+    function initPath(
         IERC20 token,
         uint256 counterpartChainId,
         IERC20 counterpartToken,
@@ -48,10 +48,10 @@ contract LiquidityHub is StakingRegistry {
         returns
         (bytes32)
     {
-        bytes32 flummId = FLUMMLib.getFLUMMId(block.chainid, token, counterpartChainId, counterpartToken);
-        FLUMM storage flumm = flumms[flummId];
-        flumm.initialize(
-            flummId,
+        bytes32 pathId = PathLib.getPathId(block.chainid, token, counterpartChainId, counterpartToken);
+        Path storage path = paths[pathId];
+        path.initialize(
+            pathId,
             token,
             counterpartChainId,
             counterpartToken,
@@ -61,11 +61,11 @@ contract LiquidityHub is StakingRegistry {
             rateDelta
         );
 
-        return flummId;
+        return pathId;
     }
 
     function send(
-        bytes32 flummId,
+        bytes32 pathId,
         address to,
         uint256 amount,
         uint256 minAmountOut,
@@ -74,35 +74,35 @@ contract LiquidityHub is StakingRegistry {
         external
         payable
     {
-        FLUMM storage flumm = flumms[flummId];
-        flumm.send(to, amount, minAmountOut, attestedCheckpoint);
+        Path storage path = paths[pathId];
+        path.send(to, amount, minAmountOut, attestedCheckpoint);
     }
 
     function postClaim(
-        bytes32 flummId,
+        bytes32 pathId,
         bytes32 claimId,
         bytes32 head,
         uint256 totalSent
     )
         external
     {
-        FLUMM storage flumm = flumms[flummId];
-        flumm.postClaim(claimId, head, totalSent);
+        Path storage path = paths[pathId];
+        path.postClaim(claimId, head, totalSent);
     }
 
     function removeClaim(
-        bytes32 flummId,
+        bytes32 pathId,
         bytes32 checkpointId,
         uint256 nonce
     )
         external
     {
-        FLUMM storage flumm = flumms[flummId];
-        flumm.removeClaim(checkpointId, nonce);
+        Path storage path = paths[pathId];
+        path.removeClaim(checkpointId, nonce);
     }
 
     function bond(
-        bytes32 flummId,
+        bytes32 pathId,
         bytes32 checkpointId,
         address to,
         uint256 amount,
@@ -113,37 +113,37 @@ contract LiquidityHub is StakingRegistry {
     )
         external
     {
-        FLUMM storage flumm = flumms[flummId];
-        flumm.bond(checkpointId, to, amount, minAmountOut, totalSent, nonce, attestedCheckpoint);
+        Path storage path = paths[pathId];
+        path.bond(checkpointId, to, amount, minAmountOut, totalSent, nonce, attestedCheckpoint);
     }
 
-    function withdraw(bytes32 flummId, uint256 amount, uint256 time) external {
-        FLUMM storage flumm = flumms[flummId];
-        flumm.withdraw(amount, time);
+    function withdraw(bytes32 pathId, uint256 amount, uint256 time) external {
+        Path storage path = paths[pathId];
+        path.withdraw(amount, time);
     }
 
-    function withdrawAll(bytes32 flummId, uint256 time) external {
-        FLUMM storage flumm = flumms[flummId];
-        uint256 amount = flumm.getWithdrawableBalance(msg.sender, time);
-        flumm.withdraw(amount, time);
+    function withdrawAll(bytes32 pathId, uint256 time) external {
+        Path storage path = paths[pathId];
+        uint256 amount = path.getWithdrawableBalance(msg.sender, time);
+        path.withdraw(amount, time);
     }
 
-    function getWithdrawableBalance(bytes32 flummId, address recipient, uint256 time) external view returns (uint256) {
-        FLUMM storage flumm = flumms[flummId];
-        return flumm.getWithdrawableBalance(recipient, time);
+    function getWithdrawableBalance(bytes32 pathId, address recipient, uint256 time) external view returns (uint256) {
+        Path storage path = paths[pathId];
+        return path.getWithdrawableBalance(recipient, time);
     }
 
-    function getFLUMMId(uint256 chainId0, IERC20 token0, uint256 chainId1, IERC20 token1) external view returns (bytes32) {
-        return FLUMMLib.getFLUMMId(chainId0, token0, chainId1, token1);
+    function getPathId(uint256 chainId0, IERC20 token0, uint256 chainId1, IERC20 token1) external view returns (bytes32) {
+        return PathLib.getPathId(chainId0, token0, chainId1, token1);
     }
 
-    function getFee(bytes32 flummId) external view returns (uint256) {
-        FLUMM storage flumm = flumms[flummId];
-        return flumm.getFee();
+    function getFee(bytes32 pathId) external view returns (uint256) {
+        Path storage path = paths[pathId];
+        return path.getFee();
     }
 
-    function getFLUMMInfo(bytes32 flummId) external view returns (uint256, IERC20, uint256, IERC20) {
-        FLUMM storage flumm = flumms[flummId];
-        return (block.chainid, flumm.token, flumm.counterpartChainId, flumm.counterpartToken);
+    function getPathInfo(bytes32 pathId) external view returns (uint256, IERC20, uint256, IERC20) {
+        Path storage path = paths[pathId];
+        return (block.chainid, path.token, path.counterpartChainId, path.counterpartToken);
     }
 }

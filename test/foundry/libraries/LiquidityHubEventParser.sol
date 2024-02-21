@@ -7,7 +7,7 @@ import {console} from "forge-std/Console.sol";
 struct TransferSentEvent{
     uint256 chainId;
     uint256 timestamp;
-    bytes32 flummId;
+    bytes32 pathId;
     bytes32 checkpointId;
     address to;
     uint256 amount;
@@ -21,7 +21,7 @@ struct TransferBondedEvent{
     uint256 chainId;
     uint256 timestamp;
     bytes32 claimId;
-    bytes32 flummId;
+    bytes32 pathId;
     address to;
     uint256 amount;
     uint256 minAmountOut;
@@ -116,7 +116,7 @@ library LiquidityHubEventParser {
         console.log("");
         console.log("TransferSent - %x", uint256(transferSentEvent.checkpointId));
         console.log("chainId %s", transferSentEvent.chainId);
-        console.log("flummId %x", uint256(transferSentEvent.flummId));
+        console.log("pathId %x", uint256(transferSentEvent.pathId));
         console.log("checkpointId %x", uint256(transferSentEvent.checkpointId));
         console.log("to %s", transferSentEvent.to);
         console.log("amount %s", transferSentEvent.amount);
@@ -132,7 +132,7 @@ library LiquidityHubEventParser {
         console.log("");
         console.log("TransferBonded - %x", uint256(transferBondedEvent.claimId));
         console.log("chainId %s", transferBondedEvent.chainId);
-        console.log("flummId %x", uint256(transferBondedEvent.flummId));
+        console.log("pathId %x", uint256(transferBondedEvent.pathId));
         console.log("to %s", transferBondedEvent.to);
         console.log("amount %s", transferBondedEvent.amount);
         console.log("minAmountOut %s", transferBondedEvent.minAmountOut);
