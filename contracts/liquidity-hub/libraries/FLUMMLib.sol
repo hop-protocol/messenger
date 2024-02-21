@@ -13,7 +13,7 @@ import {ILiquidityHub} from "../interfaces/ILiquidityHub.sol";
 import {StakingRegistry} from "../StakingRegistry.sol";
 
 import {console} from "forge-std/console.sol";
- 
+
 struct FLUMM {
     bytes32 flummId;
     IERC20 token;
@@ -236,12 +236,18 @@ library FLUMMLib {
         );
     }
 
-    function withdraw(FLUMM storage flumm, uint256 amount) internal {
-        uint256 withdrawable = flumm.getWithdrawableBalance(msg.sender, block.timestamp);
+    function withdraw(FLUMM storage flumm, uint256 amount, uint256 time) internal {
+        uint256 withdrawable = flumm.getWithdrawableBalance(msg.sender, time);
         require(withdrawable >= amount, "FLUMMLib: insufficient withdrawable balance");
 
         flumm.withdrawn[msg.sender] += amount;
+        IERC20(flumm.token).safeTransfer(msg.sender, amount);
+    }
 
+    function withdrawAll(FLUMM storage flumm, uint256 time) internal {
+        uint256 amount = flumm.getWithdrawableBalance(msg.sender, time);
+
+        flumm.withdrawn[msg.sender] += amount;
         IERC20(flumm.token).safeTransfer(msg.sender, amount);
     }
 
@@ -290,7 +296,7 @@ library FLUMMLib {
         IERC20 tokenA = isAssending ? token0 : token1;
         IERC20 tokenB = isAssending ? token1 : token0;
 
-        bytes32 flummId = keccak256(abi.encodePacked(chainIdA, tokenA, chainIdB, tokenB));
+        return keccak256(abi.encodePacked(chainIdA, tokenA, chainIdB, tokenB));
     }
 
     function getHead(FLUMM storage flumm) internal view returns (bytes32) {
@@ -299,14 +305,14 @@ library FLUMMLib {
         return flumm.checkpoints.getCheckpointData(chainLength - 1).checkpointId;
     }
 
-    function getWithdrawableBalance(FLUMM storage flumm, address recipient, uint256 time) internal view returns (uint256) {
-        uint256 minTotalSent = flumm.minTotalSent[recipient].get(time);
-        uint256 withdrawable = flumm.withdrawable[recipient].get(time);
+    function getWithdrawableBalance(FLUMM storage flumm, address bonder, uint256 time) internal view returns (uint256) {
+        uint256 minTotalSent = flumm.minTotalSent[bonder].get(time);
+        uint256 withdrawable = flumm.withdrawable[bonder].get(time);
         require(minTotalSent != 0, "FLUMMLib: Invalid time");
         require(withdrawable != 0, "FLUMMLib: Invalid time");
 
         uint256 totalSent = flumm.checkpoints.totalSent();
-        uint256 withdrawn = flumm.withdrawn[recipient];
+        uint256 withdrawn = flumm.withdrawn[bonder];
         if (totalSent < minTotalSent || withdrawable < withdrawn) {
             return 0;
         } else {

@@ -71,9 +71,6 @@ contract LiquidityHub_Test is MessengerFixture {
     }
 
     function setUp() public crossChainBroadcast {
-        string[2][] memory rpcs = vm.rpcUrls();
-        console.log(rpcs[0][0]);
-        console.log(rpcs[0][1]);
         vm.deal(deployer, 10e18);
         vm.deal(user1, 10e18);
         vm.deal(user2, 10e18);
@@ -211,11 +208,13 @@ contract LiquidityHub_Test is MessengerFixture {
         console.log("====================================");
         console.log("");
 
-        // withdraw tokens
-        on(toChainId);
-        uint256 window = 0;
-        
-        toLiquidityHub.withdrawClaims(transferBondedEvent.flummId, bonder1, window);
+        withdraw(
+            toChainId,
+            bonder1,
+            amount,
+            transferBondedEvent.flummId,
+            transferBondedEvent.timestamp
+        );
 
         printBalance(toChainId, bonder1);
         printBalance(toChainId, address(toLiquidityHub));
@@ -277,13 +276,6 @@ contract LiquidityHub_Test is MessengerFixture {
             on(toChainId);
             toLiquidityHub = liquidityHubForChainId[toChainId];
 
-        // bytes32 checkpointId = transferSentEvent.checkpointId;
-        // address to = transferSentEvent.to;
-        // uint256 minAmountOut = transferSentEvent.minAmountOut;
-        // uint256 totalSent = transferSentEvent.totalSent;
-        // uint256 nonce = transferSentEvent.nonce;
-        // bytes32 attestedCheckpoint = transferSentEvent.attestedCheckpoint;
-
             uint256 amount = transferSentEvent.amount;
             toToken.approve(address(toLiquidityHub), amount);
         }
@@ -299,7 +291,7 @@ contract LiquidityHub_Test is MessengerFixture {
             transferSentEvent.attestedCheckpoint
         );
         Vm.Log[] memory logs = vm.getRecordedLogs();
-        
+
         (uint256 startIndex, uint256 numEvents) = liquidityHubEvents.getTransferBondedEvents(logs);
         require (numEvents == 1, "No TransferBondedEvent found");
         TransferBondedEvent storage transferBondedEvent = liquidityHubEvents.transferBondedEvents[startIndex];
@@ -308,5 +300,22 @@ contract LiquidityHub_Test is MessengerFixture {
         vm.stopPrank();
 
         return transferBondedEvent;
+    }
+
+    function withdraw(
+        uint256 chainId,
+        address bonder,
+        uint256 amount,
+        bytes32 flummId,
+        uint256 time
+    )
+        internal
+        broadcastOn(chainId)
+    {
+        vm.startPrank(bonder);
+        LiquidityHub liquidityHub = liquidityHubForChainId[chainId];
+
+        liquidityHub.withdrawAll(flummId, time);
+        vm.stopPrank();
     }
 }

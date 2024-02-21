@@ -117,23 +117,20 @@ contract LiquidityHub is StakingRegistry {
         flumm.bond(checkpointId, to, amount, minAmountOut, totalSent, nonce, attestedCheckpoint);
     }
 
-    function withdraw(bytes32 flummId, uint256 amount) external {
+    function withdraw(bytes32 flummId, uint256 amount, uint256 time) external {
         FLUMM storage flumm = flumms[flummId];
-        flumm.withdraw(amount);
+        flumm.withdraw(amount, time);
+    }
+
+    function withdrawAll(bytes32 flummId, uint256 time) external {
+        FLUMM storage flumm = flumms[flummId];
+        uint256 amount = flumm.getWithdrawableBalance(msg.sender, time);
+        flumm.withdraw(amount, time);
     }
 
     function getWithdrawableBalance(bytes32 flummId, address recipient, uint256 time) external view returns (uint256) {
         FLUMM storage flumm = flumms[flummId];
         return flumm.getWithdrawableBalance(recipient, time);
-    }
-
-    function withdrawClaims(bytes32 flummId, address recipient, uint256 window) external {
-        // ToDo: set min window age
-        // FLUMM storage flumm = flumms[flummId];
-        // uint256 withdrawalAmount = flumm.getWithdrawableBalance(recipient, window);
-        // flumm.balance[recipient] -= withdrawalAmount;
-        // flumm.totalWithdrawn += withdrawalAmount;
-        // IERC20(flumm.token).safeTransfer(recipient, withdrawalAmount);
     }
 
     function getFLUMMId(uint256 chainId0, IERC20 token0, uint256 chainId1, IERC20 token1) external view returns (bytes32) {

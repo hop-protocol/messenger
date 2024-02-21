@@ -6,6 +6,7 @@ import {console} from "forge-std/Console.sol";
 
 struct TransferSentEvent{
     uint256 chainId;
+    uint256 timestamp;
     bytes32 flummId;
     bytes32 checkpointId;
     address to;
@@ -18,6 +19,7 @@ struct TransferSentEvent{
 
 struct TransferBondedEvent{
     uint256 chainId;
+    uint256 timestamp;
     bytes32 claimId;
     bytes32 flummId;
     address to;
@@ -59,6 +61,7 @@ library LiquidityHubEventParser {
                 numEvents++;
                 events.transferSentEvents.push(TransferSentEvent(
                     block.chainid,
+                    block.timestamp,
                     log.topics[1],
                     log.topics[2],
                     address(uint160(uint256(log.topics[3]))),
@@ -95,6 +98,7 @@ library LiquidityHubEventParser {
                 numEvents++;
                 events.transferBondedEvents.push(TransferBondedEvent(
                     block.chainid,
+                    block.timestamp,
                     log.topics[1],
                     log.topics[2],
                     address(uint160(uint256(log.topics[3]))),
