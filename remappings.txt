@@ -1,1 +1,6 @@
 forge-std/=lib/forge-std/src/
+@openzeppelin/=node_modules/@openzeppelin/
+@ensdomains/=node_modules/@ensdomains/
+@eth-optimism/=node_modules/@eth-optimism/
+ds-test/=lib/forge-std/lib/ds-test/src/
+hardhat/=node_modules/hardhat/
