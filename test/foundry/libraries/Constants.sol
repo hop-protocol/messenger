@@ -31,3 +31,4 @@ uint256 constant DEFAULT_TO_CHAIN_ID = HUB_CHAIN_ID;
 // General
 uint256 constant ONE_WEEK = 604800;
 uint256 constant BPS = 10_000;
+uint256 constant ONE_TKN = 1e18;

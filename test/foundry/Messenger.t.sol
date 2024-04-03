@@ -37,8 +37,8 @@ contract Messenger_Test is MessengerFixture {
     }
 
     function setUp() public crossChainBroadcast {
-        vm.deal(deployer, 10e18);
-        vm.deal(user1, 10e18);
+        vm.deal(deployer, 1e18);
+        vm.deal(user1, 1e18);
 
         chainIds.push(HUB_CHAIN_ID);
         chainIds.push(SPOKE_CHAIN_ID_0);

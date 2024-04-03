@@ -34,8 +34,8 @@ contract RailsHub_Test is MessengerFixture {
     mapping(uint256 => IERC20) public tokenForChainId;
     mapping(uint256 => RailsHub) public hubForChainId;
 
-    uint256 public constant AMOUNT = 100 * 10e18;
-    uint256 public constant MIN_AMOUNT_OUT = 99 * 10e18;
+    uint256 public constant AMOUNT = 100 * 1e18;
+    uint256 public constant MIN_AMOUNT_OUT = 99 * 1e18;
     uint256 public constant FROM_CHAIN_ID = 11155111;
     uint256 public constant TO_CHAIN_ID = 11155420;
 
@@ -71,10 +71,10 @@ contract RailsHub_Test is MessengerFixture {
     }
 
     function setUp() public crossChainBroadcast {
-        vm.deal(deployer, 10e18);
-        vm.deal(user1, 10e18);
-        vm.deal(user2, 10e18);
-        vm.deal(bonder1, 10e18);
+        vm.deal(deployer, 1e18);
+        vm.deal(user1, 1e18);
+        vm.deal(user2, 1e18);
+        vm.deal(bonder1, 1e18);
 
         chainIds.push(HUB_CHAIN_ID);
         chainIds.push(SPOKE_CHAIN_ID_0);
@@ -89,9 +89,9 @@ contract RailsHub_Test is MessengerFixture {
             on(chainId);
 
             IERC20 token = new MockToken();
-            token.transfer(address(user1), 1000 * 10e18);
-            token.transfer(address(user2), 1000 * 10e18);
-            token.transfer(address(bonder1), 1000 * 10e18);
+            token.transfer(address(user1), 1000 * 1e18);
+            token.transfer(address(user2), 1000 * 1e18);
+            token.transfer(address(bonder1), 1000 * 1e18);
             tokenForChainId[chainId] = token;
         }
 
@@ -112,7 +112,9 @@ contract RailsHub_Test is MessengerFixture {
                     counterpartToken,
                     IMessageDispatcher(address(dispatcherForChainId[chainId])),
                     IMessageExecutor(address(executorForChainId[chainId])),
-                    0
+                    5_000_000 * 1e18,
+                    5_000_000 * 1e18,
+                    200000000000000
                 );
             }
         }
@@ -285,7 +287,6 @@ contract RailsHub_Test is MessengerFixture {
             transferSentEvent.checkpoint,
             transferSentEvent.to,
             transferSentEvent.amount,
-            transferSentEvent.minAmountOut,
             transferSentEvent.totalSent,
             transferSentEvent.nonce,
             transferSentEvent.attestedCheckpoint
