@@ -16,12 +16,19 @@ import {
     MESSAGE_FEE,
     MAX_BUNDLE_MESSAGES
 } from "../libraries/Constants.sol";
+import {
+    MessengerEventParser,
+    MessageSentEvent,
+    MessengerEvents
+} from "../libraries/MessengerEventParser.sol";
 import {ExternalContracts, OPStackConfig} from "../libraries/ExternalContracts.sol";
 import {CrossChainTest, Chain} from "../libraries/CrossChainTest.sol";
 import {TransporterFixture} from "./TransporterFixture.sol";
 import {ITransportLayer} from "../../../contracts/messenger/interfaces/ITransportLayer.sol";
 
 contract MessengerFixture is TransporterFixture {
+    MessengerEvents messengerEvents;
+
     mapping(uint256 => Dispatcher) public dispatcherForChainId;
     mapping(uint256 => MockExecutor) public executorForChainId;
 
@@ -44,10 +51,39 @@ contract MessengerFixture is TransporterFixture {
         }
     }
 
-    function relayMessagesFromLogs(Vm.Log[] memory logs) internal {
-        for (uint256 i = 0; i < logs.length; i++) {
-            console.log("Event!");
-            console.logBytes32(logs[i].topics[0]);
-        }
+    function relayMessage(MessageSentEvent storage messageSentEvent) internal crossChainBroadcast {
+        uint256 toChainId = messageSentEvent.toChainId;
+
+        on(messageSentEvent.toChainId);
+
+        MockExecutor exector = executorForChainId[toChainId];
+        exector.execute(
+            messageSentEvent.messageId,
+            messageSentEvent.fromChainId,
+            messageSentEvent.from,
+            messageSentEvent.to,
+            messageSentEvent.data
+        );
     }
+
+    // function relayMessagesFromLogs(Vm.Log[] memory logs) internal crossChainBroadcast {
+    //     MessageSentEvent[] memory messageSentEvents = logs.getMessageSentEvents();
+    //     console.log("Found %s events", messageSentEvents.length);
+
+    //     for (uint256 i = 0; i < messageSentEvents.length; i++) {
+    //         MessageSentEvent memory messageSentEvent = messageSentEvents[i];
+    //         uint256 toChainId = messageSentEvent.toChainId;
+
+    //         on(messageSentEvent.toChainId);
+
+    //         MockExecutor exector = executorForChainId[toChainId];
+    //         exector.execute(
+    //             messageSentEvent.messageId,
+    //             messageSentEvent.fromChainId,
+    //             messageSentEvent.from,
+    //             messageSentEvent.to,
+    //             messageSentEvent.data
+    //         );
+    //     }
+    // }
 }

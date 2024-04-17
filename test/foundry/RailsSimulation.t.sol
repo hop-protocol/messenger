@@ -12,7 +12,11 @@ import {IMessageExecutor} from "../../contracts/ERC5164/IMessageExecutor.sol";
 import {TransporterFixture} from "./fixtures/TransporterFixture.sol";
 import {MessengerFixture} from "./fixtures/MessengerFixture.sol";
 import {MockExecutor} from "./MockExecutor.sol";
-import {MessengerEventParser, SendMessageEvent} from "./libraries/MessengerEventParser.sol";
+import {
+    MessengerEventParser,
+    MessageSentEvent,
+    MessengerEvents
+} from "./libraries/MessengerEventParser.sol";
 import {
     RailsHubEventParser,
     RailsHubEvents,
@@ -35,7 +39,7 @@ struct SimTransfer {
 }
 
 contract RailsSimulation_Test is MessengerFixture {
-    using MessengerEventParser for Vm.Log[];
+    using MessengerEventParser for MessengerEvents;
     using RailsHubEventParser for Vm.Log[];
     using RailsHubEventParser for TransferSentEvent;
     using RailsHubEventParser for TransferBondedEvent;
@@ -56,15 +60,18 @@ contract RailsSimulation_Test is MessengerFixture {
     address public constant user1 = address(2);
     address public constant bonder1 = address(3);
 
-    RailsHubEvents hubEvents;
+    RailsHubEvents railsEvents;
 
     SimTransfer[] public simTransfers;
 
     mapping(uint256 => uint256) totalSent;
     mapping(uint256 => uint256) totalBonded;
-    mapping(uint256 => uint256) totalFees;
+    mapping(uint256 => uint256) totalAttestationFees;
     mapping(uint256 => uint256) totalWithdrawn;
-    uint256 totalRate;
+    mapping(uint256 => uint256) totalRate;
+    mapping(uint256 => uint256) lastBondTimestamp;
+    mapping(uint256 => MessageSentEvent) latestMessageSent;
+
 
     constructor() {
         nameForAddress[deployer] = "DEPLOYER";
@@ -83,7 +90,7 @@ contract RailsSimulation_Test is MessengerFixture {
     }
 
     function printTokenBalances() internal {
-        console.log("Name     |         From Chain          |         To Chain");
+        console.log("Name     |    From Chain (%s)    |    To Chain (%s)", FROM_CHAIN_ID, TO_CHAIN_ID);
         printTokenBalance(user1);
         printTokenBalance(bonder1);
     }
@@ -99,7 +106,7 @@ contract RailsSimulation_Test is MessengerFixture {
         IERC20 toToken = tokenForChainId[TO_CHAIN_ID];
         uint256 toBalance = toToken.balanceOf(account);
 
-        console.log("%s | %s | %s", name, fromBalance, toBalance);
+        console.log("%s | %s | %s", name, fromBalance/1e18, toBalance/1e18);
     }
 
     function printHubTokenBalances() internal crossChainBroadcast {
@@ -113,7 +120,7 @@ contract RailsSimulation_Test is MessengerFixture {
         RailsHub toHub = hubForChainId[TO_CHAIN_ID];
         uint256 toBalance = toToken.balanceOf(address(toHub));
 
-        console.log("HopHub   |     %s |     %s", fromBalance, toBalance);
+        console.log("HopHub   |     %s |     %s", fromBalance/1e18, toBalance/1e18);
     }
 
     function setUp() public crossChainBroadcast {
@@ -133,8 +140,8 @@ contract RailsSimulation_Test is MessengerFixture {
             on(chainId);
 
             IERC20 token = new MockToken();
-            token.transfer(address(user1), 1e9 * 1e18);
-            token.transfer(address(bonder1), 1e9 * 1e18);
+            MockToken(address(token)).deal(address(user1), 1e12 * 1e18);
+            MockToken(address(token)).deal(address(bonder1), 1e12 * 1e18);
             tokenForChainId[chainId] = token;
         }
 
@@ -155,55 +162,252 @@ contract RailsSimulation_Test is MessengerFixture {
                     counterpartToken,
                     IMessageDispatcher(address(dispatcherForChainId[chainId])),
                     IMessageExecutor(address(executorForChainId[chainId])),
-                    5_000_000 * ONE_TKN,
-                    5_000_000 * ONE_TKN,
+                    10_000_000_000 * ONE_TKN,
+                    10_000_000_000 * ONE_TKN,
                     200000000000000
                 );
             }
         }
 
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 45 * 1e22));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 47 * 1e9));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 92 * 1e20));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 18 * 1e22));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 76 * 1e23));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 12 * 1e18));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 93 * 1e21));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 76 * 1e14));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 12 * 1e18));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 21 * 1e8));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 45 * 1e17));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 46 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 46 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 82 * 1e15));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 76 * 1e14));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 12 * 1e18));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 1 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 5 * 1e19));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 20 * 1e8));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 39 * 1e17));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 47 * 1e9));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 52 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 15 * 1e17));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 87 * 1e18));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 77 * 1e19));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 34 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 82 * 1e17));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 16 * 1e14));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 77 * 1e21));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 46 * 1e24));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 82 * 1e16));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 76 * 1e14));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 12 * 1e23));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 1 * 1e21));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 5 * 1e21));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 21 * 1e14));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 45 * 1e22));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 47 * 1e9));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 77 * 1e18));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 93 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 46 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 82 * 1e16));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 41 * 1e18));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 87 * 1e4));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 93 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 47 * 1e19));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 92 * 1e9));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 18 * 1e17));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 45 * 1e17));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 22 * 1e22));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 22 * 1e22));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 22 * 1e22));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 47 * 1e9));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 92 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 18 * 1e17));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 47 * 1e18));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 47 * 1e18));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 77 * 1e18));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 93 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 46 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 82 * 1e16));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 21 * 1e8));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 45 * 1e17));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 47 * 1e9));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 92 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 18 * 1e17));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 21 * 1e8));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 18 * 1e17));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 92 * 1e21));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 18 * 1e22));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 47 * 1e23));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 12 * 1e23));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 12 * 1e18));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 1 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 5 * 1e19));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 41 * 1e8));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 45 * 1e17));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 71 * 1e9));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 34 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 45 * 1e17));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 47 * 1e19));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 92 * 1e9));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 18 * 1e17));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 47 * 1e18));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 77 * 1e18));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 93 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 46 * 1e19));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 1 * 1e21));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 5 * 1e21));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 18 * 1e22));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 47 * 1e23));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 77 * 1e23));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 93 * 1e21));
         simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 1 * 1e19));
         simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 5 * 1e19));
         simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 21 * 1e8));
         simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 45 * 1e17));
         simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 47 * 1e9));
-        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 92 * 1e20));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 92 * 1e19));
         simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 18 * 1e17));
-        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 47 * 1e18));
-        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 77 * 1e18));
-        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 93 * 1e19));
-        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 46 * 1e20));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 21 * 1e8));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 18 * 1e17));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 92 * 1e21));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 18 * 1e22));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 47 * 1e23));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 77 * 1e23));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 93 * 1e21));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 82 * 1e16));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 76 * 1e14));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 12 * 1e23));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 82 * 1e16));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 77 * 1e23));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 93 * 1e21));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 46 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 46 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 82 * 1e15));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 76 * 1e14));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 12 * 1e18));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 21 * 1e8));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 47 * 1e23));
         simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 82 * 1e16));
         simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 76 * 1e14));
         simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 12 * 1e18));
         simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 1 * 1e19));
         simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 5 * 1e19));
         simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 21 * 1e8));
-        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 45 * 1e17));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 47 * 1e18));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 77 * 1e19));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 93 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 82 * 1e16));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 52 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 15 * 1e17));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 87 * 1e18));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 77 * 1e19));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 34 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 82 * 1e17));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 16 * 1e14));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 77 * 1e21));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 46 * 1e24));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 82 * 1e16));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 76 * 1e14));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 12 * 1e23));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 1 * 1e21));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 5 * 1e21));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 21 * 1e14));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 39 * 1e24));
         simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 47 * 1e9));
-        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 92 * 1e20));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 77 * 1e18));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 93 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 46 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 82 * 1e16));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 41 * 1e18));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 87 * 1e4));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 93 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 82 * 1e16));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 76 * 1e14));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 12 * 1e23));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 82 * 1e16));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 76 * 1e14));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 76 * 1e14));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 12 * 1e23));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 12 * 1e18));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 1 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 5 * 1e19));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 41 * 1e8));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 45 * 1e17));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 71 * 1e9));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 34 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 45 * 1e17));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 47 * 1e19));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 92 * 1e9));
         simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 18 * 1e17));
         simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 47 * 1e18));
         simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 77 * 1e18));
         simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 93 * 1e19));
-        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 46 * 1e20));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 46 * 1e19));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 1 * 1e21));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 5 * 1e21));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 9 * 1e22));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 47 * 1e23));
         simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 82 * 1e16));
         simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 76 * 1e14));
         simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 12 * 1e18));
         simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 1 * 1e19));
         simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 5 * 1e19));
         simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 21 * 1e8));
-        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 45 * 1e17));
-        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 47 * 1e9));
-        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 92 * 1e20));
-        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 18 * 1e17));
         simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 47 * 1e18));
-        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 77 * 1e18));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 77 * 1e19));
         simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 93 * 1e19));
-        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 46 * 1e20));
         simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 82 * 1e16));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 45 * 1e22));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 47 * 1e9));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 92 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 18 * 1e22));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 76 * 1e14));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 21 * 1e14));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 45 * 1e22));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 47 * 1e20));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 92 * 1e15));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 1 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 5 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 17 * 1e24));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 20 * 1e8));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 39 * 1e17));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 47 * 1e9));
         simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 76 * 1e14));
         simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 12 * 1e18));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 93 * 1e21));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 76 * 1e14));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 12 * 1e18));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 21 * 1e8));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 45 * 1e17));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 47 * 1e19));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 92 * 1e23));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 18 * 1e17));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 45 * 1e17));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 22 * 1e22));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 22 * 1e22));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 22 * 1e22));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 47 * 1e9));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 92 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 18 * 1e17));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 47 * 1e18));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 47 * 1e18));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 77 * 1e22));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 93 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 46 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 82 * 1e16));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 76 * 1e14));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 21 * 1e14));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 45 * 1e22));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 12 * 1e24));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 92 * 1e15));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 18 * 1e22));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 59 * 1e23));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 88 * 1e23));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 93 * 1e21));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 1 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 5 * 1e19));
 
         vm.stopPrank();
     }
@@ -224,8 +428,72 @@ contract RailsSimulation_Test is MessengerFixture {
         printTokenBalances();
         printHubTokenBalances();
 
+        // get hubs
+        // call withdraw all w/ bonder
+
+        console.log("");
+        console.log("Bonder withdrawing...");
+        console.log("");
+
+        withdrawAll();
+
+        printTokenBalances();
+        printHubTokenBalances();
+
+
+        console.log("");
+        console.log("Relaying final messages for hard confirmation...");
+        console.log("");
+
+        relayMessage(latestMessageSent[FROM_CHAIN_ID]);
+        relayMessage(latestMessageSent[TO_CHAIN_ID]);
+
+        console.log("");
+        console.log("Bonder withdrawing...");
+        console.log("");
+
+        withdrawAll();
+
+        printTokenBalances();
+        printHubTokenBalances();
+
+        console.log("");
+        console.log("totalSent: %s", (totalSent[FROM_CHAIN_ID] + totalSent[TO_CHAIN_ID]) / 1e18);
+        console.log("totalBonded: %s", (totalBonded[FROM_CHAIN_ID] + totalBonded[TO_CHAIN_ID]) / 1e18);
+        console.log("totalAttestationFees: %s", (totalAttestationFees[FROM_CHAIN_ID] + totalAttestationFees[TO_CHAIN_ID]) / 1e18);
+        console.log("totalWithdrawn: %s", (totalWithdrawn[FROM_CHAIN_ID] + totalWithdrawn[TO_CHAIN_ID]) / 1e18);
+        console.log("avgRate: %s", (totalRate[FROM_CHAIN_ID] + totalRate[TO_CHAIN_ID]) / simTransfers.length);
+        console.log("");
+
+        // IERC20 fromToken = tokenForChainId[FROM_CHAIN_ID];
+        // IERC20 toToken = tokenForChainId[TO_CHAIN_ID];
+        // bytes32 pathId = fromRailsHub.getPathId(FROM_CHAIN_ID, fromToken, TO_CHAIN_ID, toToken);
+        // withdrawAll(FROM_CHAIN_ID, pathId);
+        // withdrawAll(TO_CHAIN_ID, pathId);
+
         // printTokenBalance(FROM_CHAIN_ID, address(hubForChainId[FROM_CHAIN_ID]));
         // printTokenBalance(TO_CHAIN_ID, address(hubForChainId[TO_CHAIN_ID]));
+    }
+
+    function withdrawAll() internal broadcastOn(FROM_CHAIN_ID) {
+        IERC20 fromToken = tokenForChainId[FROM_CHAIN_ID];
+        IERC20 toToken = tokenForChainId[TO_CHAIN_ID];
+        RailsHub fromRailsHub = hubForChainId[FROM_CHAIN_ID];
+        bytes32 pathId = fromRailsHub.getPathId(FROM_CHAIN_ID, fromToken, TO_CHAIN_ID, toToken);
+
+        withdrawAll(FROM_CHAIN_ID, pathId);
+        withdrawAll(TO_CHAIN_ID, pathId);
+    }
+
+    function withdrawAll(uint256 chainId, bytes32 pathId) internal broadcastOn(chainId) {
+        vm.startPrank(bonder1);
+        RailsHub hub = hubForChainId[chainId];
+        uint256 _lastBondTimestamp = lastBondTimestamp[chainId];
+        if (_lastBondTimestamp != 0) {
+            uint256 amount = hub.withdrawAll(pathId, _lastBondTimestamp);
+            totalWithdrawn[chainId] += amount;
+        }
+        vm.stopPrank();
     }
 
     function processSimTransfer(SimTransfer storage simTransfer) internal crossChainBroadcast() {
@@ -233,7 +501,10 @@ contract RailsSimulation_Test is MessengerFixture {
         IERC20 toToken = tokenForChainId[simTransfer.toChainId];
         uint256 minAmountOut = 0;
 
-        TransferSentEvent storage transferSentEvent = send(
+        (
+            TransferSentEvent storage transferSentEvent,
+            MessageSentEvent storage messageSentEvent
+        ) = send(
             user1,
             simTransfer.fromChainId,
             fromToken,
@@ -243,6 +514,7 @@ contract RailsSimulation_Test is MessengerFixture {
             simTransfer.amount,
             minAmountOut
         );
+        // transferSentEvent.printEvent();
 
         on(simTransfer.toChainId);
         uint256 beforeBalance = toToken.balanceOf(user1);
@@ -253,11 +525,16 @@ contract RailsSimulation_Test is MessengerFixture {
         uint256 received = afterBalance - beforeBalance;
 
         uint256 rate = received * ONE_TKN / transferSentEvent.amount;
+        totalRate[simTransfer.fromChainId] += rate;
 
-        transferSentEvent.printEvent();
         transferBondedEvent.printEvent();
-        console.log("rate: %s", rate);
-        console.log("");
+        // if (simTransfer.fromChainId == FROM_CHAIN_ID) {
+        //     console.log("rate: %s", rate);
+        // } else {
+        //     console.log("rate: %s", 1e36 / rate);
+        // }
+
+        latestMessageSent[simTransfer.fromChainId] = messageSentEvent;
     }
 
     function send(
@@ -271,18 +548,30 @@ contract RailsSimulation_Test is MessengerFixture {
         uint256 minAmountOut
     )
         internal
-        broadcastOn(fromChainId)
-        returns (TransferSentEvent storage)
+        crossChainBroadcast
+        returns (TransferSentEvent storage, MessageSentEvent storage)
     {
+        vm.startPrank(from);
+
+        bytes32 pathId;
+        bytes32 attestedCheckpoint;
         {
-            vm.startPrank(from);
+            on(toChainId);
+
+            RailsHub toRailsHub = hubForChainId[toChainId];
+            pathId = toRailsHub.getPathId(fromChainId, IERC20(address(fromToken)), toChainId, IERC20(address(toToken)));
+            attestedCheckpoint = toRailsHub.getHeadCheckpoint(pathId);
+        }
+
+        {
+            on(fromChainId);
+
             RailsHub fromRailsHub = hubForChainId[fromChainId];
-            bytes32 pathId = fromRailsHub.getPathId(fromChainId, IERC20(address(fromToken)), toChainId, IERC20(address(toToken)));
             uint256 fee = fromRailsHub.getFee(pathId);
 
             fromToken.approve(address(fromRailsHub), amount);
             vm.recordLogs();
-            bytes32 attestedCheckpoint = bytes32(0);
+            // console.log("send attestedCheckpoint: %x", uint256(attestedCheckpoint));
             fromRailsHub.send{
                 value: fee
             }(
@@ -297,17 +586,27 @@ contract RailsSimulation_Test is MessengerFixture {
         }
 
         TransferSentEvent storage transferSentEvent;
+        MessageSentEvent storage messageSentEvent;
+
         {
             Vm.Log[] memory logs = vm.getRecordedLogs();
-            (uint256 startIndex, uint256 numEvents) = hubEvents.getTransferSentEvents(logs);
-            require (numEvents == 1, "No TransferSentEvent found");
-            transferSentEvent = hubEvents.transferSentEvents[startIndex];
+            {
+                (uint256 startIndex, uint256 numEvents) = railsEvents.getTransferSentEvents(logs);
+                require (numEvents == 1, "invalid number of railsEvents");
+                transferSentEvent = railsEvents.transferSentEvents[startIndex];
+            }
+
+            {
+                (uint256 startIndex, uint256 numEvents) = messengerEvents.getMessageSentEvents(logs);
+                require(numEvents == 1, "Duplicate events found");
+                messageSentEvent = messengerEvents.messageSentEvents[startIndex];
+            }
         }
 
         totalSent[fromChainId] += amount;
-        totalFees[fromChainId] += transferSentEvent.attestationFee;
+        totalAttestationFees[fromChainId] += transferSentEvent.attestationFee;
         
-        return transferSentEvent;
+        return (transferSentEvent, messageSentEvent);
     }
 
     function bond(address bonder, TransferSentEvent storage transferSentEvent) internal crossChainBroadcast returns (TransferBondedEvent storage) {
@@ -327,9 +626,10 @@ contract RailsSimulation_Test is MessengerFixture {
             toRailsHub = hubForChainId[toChainId];
 
             uint256 amount = transferSentEvent.amount;
-            toToken.approve(address(toRailsHub), amount * 2);
+            toToken.approve(address(toRailsHub), amount * 20);
         }
         vm.recordLogs();
+        // console.log("bond attestedCheckpoint: %x", uint256(transferSentEvent.attestedCheckpoint));
         toRailsHub.bond(
             pathId,
             transferSentEvent.checkpoint,
@@ -341,13 +641,14 @@ contract RailsSimulation_Test is MessengerFixture {
         );
         Vm.Log[] memory logs = vm.getRecordedLogs();
 
-        (uint256 startIndex, uint256 numEvents) = hubEvents.getTransferBondedEvents(logs);
+        (uint256 startIndex, uint256 numEvents) = railsEvents.getTransferBondedEvents(logs);
         require (numEvents == 1, "No TransferBondedEvent found");
-        TransferBondedEvent storage transferBondedEvent = hubEvents.transferBondedEvents[startIndex];
+        TransferBondedEvent storage transferBondedEvent = railsEvents.transferBondedEvents[startIndex];
 
         vm.stopPrank();
 
         totalBonded[toChainId] += transferBondedEvent.amount;
+        lastBondTimestamp[toChainId] = transferBondedEvent.timestamp;
 
         return transferBondedEvent;
     }

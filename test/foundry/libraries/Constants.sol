@@ -17,7 +17,7 @@ uint256 constant MAX_TRANSPORT_FEE_BPS = 30_000; // 300%
 uint256 constant EXIT_TIME = 60; // 1 min for testnet
 
 // Fee collection
-uint256 constant MAX_BUNDLE_MESSAGES = 32;
+uint256 constant MAX_BUNDLE_MESSAGES = 1024;
 uint256 constant MESSAGE_FEE = 7_000_000_000_000;
 uint256 constant TRANSPORT_FEE = 7_000_000_000_000_000; // 0.007
 uint256 constant RELAY_WINDOW = 12 * 3600; // 12 hours

@@ -12,7 +12,7 @@ import {IMessageExecutor} from "../../contracts/ERC5164/IMessageExecutor.sol";
 import {TransporterFixture} from "./fixtures/TransporterFixture.sol";
 import {MessengerFixture} from "./fixtures/MessengerFixture.sol";
 import {MockExecutor} from "./MockExecutor.sol";
-import {MessengerEventParser, SendMessageEvent} from "./libraries/MessengerEventParser.sol";
+import {MessengerEventParser, MessageSentEvent} from "./libraries/MessengerEventParser.sol";
 import {
     RailsHubEventParser,
     RailsHubEvents,

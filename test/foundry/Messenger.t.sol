@@ -13,11 +13,15 @@ import {IMessageExecutor} from '../../contracts/ERC5164/IMessageExecutor.sol';
 import {TransporterFixture} from './fixtures/TransporterFixture.sol';
 import {MessengerFixture} from './fixtures/MessengerFixture.sol';
 import {MockExecutor} from './MockExecutor.sol';
-import {MessengerEventParser, SendMessageEvent} from './libraries/MessengerEventParser.sol';
+import {
+    MessengerEventParser,
+    MessageSentEvent,
+    MessengerEvents
+} from './libraries/MessengerEventParser.sol';
 import {HUB_CHAIN_ID, SPOKE_CHAIN_ID_0, SPOKE_CHAIN_ID_1} from './libraries/Constants.sol';
 
 contract Messenger_Test is MessengerFixture {
-    using MessengerEventParser for Vm.Log[];
+    using MessengerEventParser for MessengerEvents;
 
     uint256[] public chainIds;
 
@@ -59,18 +63,17 @@ contract Messenger_Test is MessengerFixture {
         vm.recordLogs();
         dispatcher.dispatchMessage{value: fee}(SPOKE_CHAIN_ID_0, msg.sender, abi.encodeWithSignature("hello()"));
         Vm.Log[] memory logs = vm.getRecordedLogs();
-        // Vm.Log memory log = logs[0];
 
-        SendMessageEvent[] memory sendMessageEvents = logs.getSendMessageEvents();
-        SendMessageEvent memory sendMessageEvent = sendMessageEvents[0];
+       (uint256 startIndex, uint256 numEvents) = messengerEvents.getMessageSentEvents(logs);
+        MessageSentEvent storage sendMessageEvent = messengerEvents.messageSentEvents[startIndex];
 
-        printSendMessageEvent(sendMessageEvent);
+        printMessageSentEvent(sendMessageEvent);
 
         assertEq(true, true);
     }
 
-    function printSendMessageEvent(SendMessageEvent memory sendMessageEvent) internal view {
-        console.log("SendMessageEvent");
+    function printMessageSentEvent(MessageSentEvent storage sendMessageEvent) internal view {
+        console.log("MessageSentEvent");
         console.log("messageId");
         console.logBytes32(sendMessageEvent.messageId);
         console.log("from");

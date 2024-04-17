@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 import {Vm} from "forge-std/Vm.sol";
 import {console} from "forge-std/Console.sol";
 
-struct TransferSentEvent{
+struct TransferSentEvent {
     uint256 chainId;
     uint256 timestamp;
     bytes32 pathId;
@@ -18,7 +18,7 @@ struct TransferSentEvent{
     bytes32 attestedCheckpoint;
 }
 
-struct TransferBondedEvent{
+struct TransferBondedEvent {
     uint256 chainId;
     uint256 timestamp;
     bytes32 pathId;
