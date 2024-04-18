@@ -29,6 +29,7 @@ import {
     SPOKE_CHAIN_ID_1,
     ONE_TKN
 } from "./libraries/Constants.sol";
+import {StringLib} from "./libraries/StringLib.sol";
 
 import {console} from "forge-std/console.sol";
 
@@ -44,6 +45,9 @@ contract RailsSimulation_Test is MessengerFixture {
     using RailsHubEventParser for TransferSentEvent;
     using RailsHubEventParser for TransferBondedEvent;
     using RailsHubEventParser for RailsHubEvents;
+    using StringLib for string;
+    using StringLib for uint256;
+    using StringLib for string[];
 
     uint256[] public chainIds;
     mapping(uint256 => IERC20) public tokenForChainId;
@@ -75,7 +79,7 @@ contract RailsSimulation_Test is MessengerFixture {
 
     constructor() {
         nameForAddress[deployer] = "DEPLOYER";
-        nameForAddress[user1] = "USER 1  ";
+        nameForAddress[user1] = "USER 1";
         nameForAddress[bonder1] = "BONDER 1";
     }
 
@@ -90,7 +94,7 @@ contract RailsSimulation_Test is MessengerFixture {
     }
 
     function printTokenBalances() internal {
-        console.log("Name     |    From Chain (%s)    |    To Chain (%s)", FROM_CHAIN_ID, TO_CHAIN_ID);
+        console.log("Name     |    From Chain (%s)     |     To Chain (%s)", FROM_CHAIN_ID, TO_CHAIN_ID);
         printTokenBalance(user1);
         printTokenBalance(bonder1);
     }
@@ -106,7 +110,7 @@ contract RailsSimulation_Test is MessengerFixture {
         IERC20 toToken = tokenForChainId[TO_CHAIN_ID];
         uint256 toBalance = toToken.balanceOf(account);
 
-        console.log("%s | %s | %s", name, fromBalance/1e18, toBalance/1e18);
+        printBalanceRow(name, fromBalance, toBalance);
     }
 
     function printHubTokenBalances() internal crossChainBroadcast {
@@ -120,7 +124,11 @@ contract RailsSimulation_Test is MessengerFixture {
         RailsHub toHub = hubForChainId[TO_CHAIN_ID];
         uint256 toBalance = toToken.balanceOf(address(toHub));
 
-        console.log("HopHub   |     %s |     %s", fromBalance/1e18, toBalance/1e18);
+        printBalanceRow("HopHub", fromBalance, toBalance);
+    }
+
+    function printBalanceRow(string memory name, uint256 balance0, uint256 balance1) internal {
+        console.log(StringLib.toRow(name, balance0.format(18, 4), balance1.format(18, 4)));
     }
 
     function setUp() public crossChainBroadcast {
@@ -420,16 +428,9 @@ contract RailsSimulation_Test is MessengerFixture {
             processSimTransfer(simTransfers[i]);
         }
 
-        // printTokenBalance(FROM_CHAIN_ID, user1);
-        // printTokenBalance(FROM_CHAIN_ID, bonder1);
-        // printTokenBalance(TO_CHAIN_ID, user1);
-        // printTokenBalance(TO_CHAIN_ID, bonder1);
-
+        console.log("");
         printTokenBalances();
         printHubTokenBalances();
-
-        // get hubs
-        // call withdraw all w/ bonder
 
         console.log("");
         console.log("Bonder withdrawing...");
