@@ -5,7 +5,7 @@ import {Vm} from "forge-std/Vm.sol";
 import {CrossChainTest} from "./libraries/CrossChainTest.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {MockToken} from "../../contracts/test/MockToken.sol";
-import {RailsHub} from "../../contracts/rails/RailsHub.sol";
+import {RailsGateway} from "../../contracts/rails/RailsGateway.sol";
 import {ICrossChainFees} from "../../contracts/messenger/interfaces/ICrossChainFees.sol";
 import {IMessageDispatcher} from "../../contracts/ERC5164/IMessageDispatcher.sol";
 import {IMessageExecutor} from "../../contracts/ERC5164/IMessageExecutor.sol";
@@ -14,25 +14,25 @@ import {MessengerFixture} from "./fixtures/MessengerFixture.sol";
 import {MockExecutor} from "./MockExecutor.sol";
 import {MessengerEventParser, MessageSentEvent} from "./libraries/MessengerEventParser.sol";
 import {
-    RailsHubEventParser,
-    RailsHubEvents,
+    RailsGatewayEventParser,
+    RailsGatewayEvents,
     TransferSentEvent,
     TransferBondedEvent
-} from "./libraries/RailsHubEventParser.sol";
+} from "./libraries/RailsGatewayEventParser.sol";
 import {HUB_CHAIN_ID, SPOKE_CHAIN_ID_0, SPOKE_CHAIN_ID_1} from "./libraries/Constants.sol";
 
 import {console} from "forge-std/console.sol";
 
-contract RailsHub_Test is MessengerFixture {
+contract RailsGateway_Test is MessengerFixture {
     using MessengerEventParser for Vm.Log[];
-    using RailsHubEventParser for Vm.Log[];
-    using RailsHubEventParser for TransferSentEvent;
-    using RailsHubEventParser for TransferBondedEvent;
-    using RailsHubEventParser for RailsHubEvents;
+    using RailsGatewayEventParser for Vm.Log[];
+    using RailsGatewayEventParser for TransferSentEvent;
+    using RailsGatewayEventParser for TransferBondedEvent;
+    using RailsGatewayEventParser for RailsGatewayEvents;
 
     uint256[] public chainIds;
     mapping(uint256 => IERC20) public tokenForChainId;
-    mapping(uint256 => RailsHub) public hubForChainId;
+    mapping(uint256 => RailsGateway) public gatewayForChainId;
 
     uint256 public constant AMOUNT = 100 * 1e18;
     uint256 public constant MIN_AMOUNT_OUT = 99 * 1e18;
@@ -46,7 +46,7 @@ contract RailsHub_Test is MessengerFixture {
     address public constant user2 = address(3);
     address public constant bonder1 = address(4);
 
-    RailsHubEvents hubEvents;
+    RailsGatewayEvents gatewayEvents;
 
     constructor() {
         nameForAddress[deployer] = "deployer";
@@ -98,15 +98,15 @@ contract RailsHub_Test is MessengerFixture {
         for (uint256 i = 0; i < chainIds.length; i++) {
             uint256 chainId = chainIds[i];
             on(chainId);
-            RailsHub hub = new RailsHub();
-            hubForChainId[chainId] = hub;
+            RailsGateway gateway = new RailsGateway();
+            gatewayForChainId[chainId] = gateway;
             IERC20 token = tokenForChainId[chainId];
 
             for (uint256 j = 0; j < chainIds.length; j++) {
                 uint256 counterpartChainId = chainIds[j];
                 if (counterpartChainId == chainId) continue;
                 IERC20 counterpartToken = tokenForChainId[counterpartChainId];
-                bytes32 pathId = hub.initPath(
+                bytes32 pathId = gateway.initPath(
                     token,
                     counterpartChainId,
                     counterpartToken,
@@ -129,10 +129,10 @@ contract RailsHub_Test is MessengerFixture {
         uint256 amount = AMOUNT;
         uint256 minAmountOut = MIN_AMOUNT_OUT;
 
-        RailsHub fromRailsHub = hubForChainId[FROM_CHAIN_ID];
-        RailsHub toRailsHub = hubForChainId[TO_CHAIN_ID];
-        nameForAddress[address(fromRailsHub)] = "fromRailsHub";
-        nameForAddress[address(toRailsHub)] = "toRailsHub";
+        RailsGateway fromRailsGateway = gatewayForChainId[FROM_CHAIN_ID];
+        RailsGateway toRailsGateway = gatewayForChainId[TO_CHAIN_ID];
+        nameForAddress[address(fromRailsGateway)] = "fromRailsGateway";
+        nameForAddress[address(toRailsGateway)] = "toRailsGateway";
 
         console.log("");
         console.log("====================================");
@@ -143,11 +143,11 @@ contract RailsHub_Test is MessengerFixture {
         on(fromChainId);
         printBalance(user1);
         printBalance(bonder1);
-        printBalance(address(fromRailsHub));
+        printBalance(address(fromRailsGateway));
         on(toChainId);
         printBalance(user1);
         printBalance(bonder1);
-        printBalance(address(toRailsHub));
+        printBalance(address(toRailsGateway));
 
         console.log("");
         console.log("====================================");
@@ -168,7 +168,7 @@ contract RailsHub_Test is MessengerFixture {
         );
 
         // printBalance(fromChainId, user1);
-        printBalance(fromChainId, address(fromRailsHub));
+        printBalance(fromChainId, address(fromRailsGateway));
 
         console.log("");
         console.log("====================================");
@@ -200,7 +200,7 @@ contract RailsHub_Test is MessengerFixture {
             minAmountOut
         );
 
-        printBalance(toChainId, address(toRailsHub));
+        printBalance(toChainId, address(toRailsGateway));
 
         // ToDo: advance time
 
@@ -219,7 +219,7 @@ contract RailsHub_Test is MessengerFixture {
         );
 
         printBalance(toChainId, bonder1);
-        printBalance(toChainId, address(toRailsHub));
+        printBalance(toChainId, address(toRailsGateway));
     }
 
     function send(
@@ -237,14 +237,14 @@ contract RailsHub_Test is MessengerFixture {
         returns (TransferSentEvent storage)
     {
         vm.startPrank(from);
-        RailsHub fromRailsHub = hubForChainId[fromChainId];
-        bytes32 pathId = fromRailsHub.getPathId(fromChainId, IERC20(address(fromToken)), toChainId, IERC20(address(toToken)));
-        uint256 fee = fromRailsHub.getFee(pathId);
+        RailsGateway fromRailsGateway = gatewayForChainId[fromChainId];
+        bytes32 pathId = fromRailsGateway.getPathId(fromChainId, IERC20(address(fromToken)), toChainId, IERC20(address(toToken)));
+        uint256 fee = fromRailsGateway.getFee(pathId);
 
-        fromToken.approve(address(fromRailsHub), amount);
+        fromToken.approve(address(fromRailsGateway), amount);
         vm.recordLogs();
         bytes32 attestedCheckpoint = bytes32(0);
-        fromRailsHub.send{
+        fromRailsGateway.send{
             value: fee
         }(
             pathId,
@@ -255,9 +255,9 @@ contract RailsHub_Test is MessengerFixture {
         );
         Vm.Log[] memory logs = vm.getRecordedLogs();
 
-        (uint256 startIndex, uint256 numEvents) = hubEvents.getTransferSentEvents(logs);
+        (uint256 startIndex, uint256 numEvents) = gatewayEvents.getTransferSentEvents(logs);
         require (numEvents == 1, "No TransferSentEvent found");
-        TransferSentEvent storage transferSentEvent = hubEvents.transferSentEvents[startIndex];
+        TransferSentEvent storage transferSentEvent = gatewayEvents.transferSentEvents[startIndex];
         transferSentEvent.printEvent();
         vm.stopPrank();
 
@@ -266,23 +266,23 @@ contract RailsHub_Test is MessengerFixture {
 
     function bond(address bonder, TransferSentEvent storage transferSentEvent) internal crossChainBroadcast returns (TransferBondedEvent storage) {
         bytes32 pathId = transferSentEvent.pathId;
-        RailsHub toRailsHub;
+        RailsGateway toRailsGateway;
         {
             vm.startPrank(bonder);
             uint256 fromChainId = transferSentEvent.chainId;
             on(fromChainId);
-            RailsHub fromRailsHub = hubForChainId[fromChainId];
+            RailsGateway fromRailsGateway = gatewayForChainId[fromChainId];
 
-            ( , , uint256 toChainId, IERC20 toToken) = fromRailsHub.getPathInfo(pathId);
+            ( , , uint256 toChainId, IERC20 toToken) = fromRailsGateway.getPathInfo(pathId);
 
             on(toChainId);
-            toRailsHub = hubForChainId[toChainId];
+            toRailsGateway = gatewayForChainId[toChainId];
 
             uint256 amount = transferSentEvent.amount;
-            toToken.approve(address(toRailsHub), amount);
+            toToken.approve(address(toRailsGateway), amount);
         }
         vm.recordLogs();
-        toRailsHub.bond(
+        toRailsGateway.bond(
             pathId,
             transferSentEvent.checkpoint,
             transferSentEvent.to,
@@ -293,9 +293,9 @@ contract RailsHub_Test is MessengerFixture {
         );
         Vm.Log[] memory logs = vm.getRecordedLogs();
 
-        (uint256 startIndex, uint256 numEvents) = hubEvents.getTransferBondedEvents(logs);
+        (uint256 startIndex, uint256 numEvents) = gatewayEvents.getTransferBondedEvents(logs);
         require (numEvents == 1, "No TransferBondedEvent found");
-        TransferBondedEvent storage transferBondedEvent = hubEvents.transferBondedEvents[startIndex];
+        TransferBondedEvent storage transferBondedEvent = gatewayEvents.transferBondedEvents[startIndex];
 
         transferBondedEvent.printEvent();
         vm.stopPrank();
@@ -314,9 +314,9 @@ contract RailsHub_Test is MessengerFixture {
         broadcastOn(chainId)
     {
         vm.startPrank(bonder);
-        RailsHub hub = hubForChainId[chainId];
+        RailsGateway gateway = gatewayForChainId[chainId];
 
-        hub.withdrawAll(pathId, time);
+        gateway.withdrawAll(pathId, time);
         vm.stopPrank();
     }
 }
