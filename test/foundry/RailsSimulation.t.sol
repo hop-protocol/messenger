@@ -515,7 +515,7 @@ contract RailsSimulation_Test is MessengerFixture {
             simTransfer.amount,
             minAmountOut
         );
-        // transferSentEvent.printEvent();
+        transferSentEvent.printEvent();
 
         on(simTransfer.toChainId);
         uint256 beforeBalance = toToken.balanceOf(user1);
@@ -529,11 +529,6 @@ contract RailsSimulation_Test is MessengerFixture {
         totalRate[simTransfer.fromChainId] += rate;
 
         transferBondedEvent.printEvent();
-        // if (simTransfer.fromChainId == FROM_CHAIN_ID) {
-        //     console.log("rate: %s", rate);
-        // } else {
-        //     console.log("rate: %s", 1e36 / rate);
-        // }
 
         latestMessageSent[simTransfer.fromChainId] = messageSentEvent;
     }
@@ -556,14 +551,24 @@ contract RailsSimulation_Test is MessengerFixture {
 
         bytes32 pathId;
         bytes32 attestedCheckpoint;
+        // get latest claim
         {
+            on(fromChainId);
+
+            RailsHub fromRailsHub = hubForChainId[fromChainId];
+            pathId = fromRailsHub.getPathId(fromChainId, IERC20(address(fromToken)), toChainId, IERC20(address(toToken)));
+            attestedCheckpoint = fromRailsHub.getLatestClaim(pathId);
+        }
+
+        // check the claim at destination
+        if (attestedCheckpoint != bytes32(0)) {
             on(toChainId);
 
             RailsHub toRailsHub = hubForChainId[toChainId];
-            pathId = toRailsHub.getPathId(fromChainId, IERC20(address(fromToken)), toChainId, IERC20(address(toToken)));
-            attestedCheckpoint = toRailsHub.getHeadCheckpoint(pathId);
+            require(toRailsHub.isCheckpointValid(pathId, attestedCheckpoint) == true, "invalid attested checkpoint");
         }
 
+        // send
         {
             on(fromChainId);
 
