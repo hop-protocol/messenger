@@ -611,7 +611,7 @@ contract RailsSimulation_Test is MessengerFixture {
 
         totalSent[fromChainId] += amount;
         totalAttestationFees[fromChainId] += transferSentEvent.attestationFee;
-        
+
         return (transferSentEvent, messageSentEvent);
     }
 
