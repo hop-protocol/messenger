@@ -94,7 +94,14 @@ contract RailsSimulation_Test is MessengerFixture {
     }
 
     function printTokenBalances() internal {
-        console.log("Name     |    From Chain (%s)     |     To Chain (%s)", FROM_CHAIN_ID, TO_CHAIN_ID);
+        console.log(
+            StringLib.toHeader(
+                "Name",
+                string.concat("From Chain ", FROM_CHAIN_ID.toString()),
+                string.concat("To Chain ", TO_CHAIN_ID.toString())
+            )
+        );
+
         printTokenBalance(user1);
         printTokenBalance(bonder1);
     }
@@ -128,7 +135,7 @@ contract RailsSimulation_Test is MessengerFixture {
     }
 
     function printBalanceRow(string memory name, uint256 balance0, uint256 balance1) internal {
-        console.log(StringLib.toRow(name, balance0.format(18, 4), balance1.format(18, 4)));
+        console.log(StringLib.toRow(name, balance0.format(18, 18), balance1.format(18, 18)));
     }
 
     function setUp() public crossChainBroadcast {
@@ -415,7 +422,8 @@ contract RailsSimulation_Test is MessengerFixture {
         simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 88 * 1e23));
         simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 93 * 1e21));
         simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 1 * 1e19));
-        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 5 * 1e19));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 5 * 1e22));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 28514481046626596013834));
 
         vm.stopPrank();
     }
@@ -458,12 +466,17 @@ contract RailsSimulation_Test is MessengerFixture {
         printTokenBalances();
         printGatewayTokenBalances();
 
+        uint256 _totalSent = totalSent[FROM_CHAIN_ID] + totalSent[TO_CHAIN_ID];
+        uint256 _totalBonded = totalBonded[FROM_CHAIN_ID] + totalBonded[TO_CHAIN_ID];
+        uint256 _totalAttestationFees = totalAttestationFees[FROM_CHAIN_ID] + totalAttestationFees[TO_CHAIN_ID];
+        uint256 _totalWithdrawn = totalWithdrawn[FROM_CHAIN_ID] + totalWithdrawn[TO_CHAIN_ID];
+        uint256 _avgRate = (totalRate[FROM_CHAIN_ID] + totalRate[TO_CHAIN_ID]) / simTransfers.length;
+
         console.log("");
-        console.log("totalSent: %s", (totalSent[FROM_CHAIN_ID] + totalSent[TO_CHAIN_ID]) / 1e18);
-        console.log("totalBonded: %s", (totalBonded[FROM_CHAIN_ID] + totalBonded[TO_CHAIN_ID]) / 1e18);
-        console.log("totalAttestationFees: %s", (totalAttestationFees[FROM_CHAIN_ID] + totalAttestationFees[TO_CHAIN_ID]) / 1e18);
-        console.log("totalWithdrawn: %s", (totalWithdrawn[FROM_CHAIN_ID] + totalWithdrawn[TO_CHAIN_ID]) / 1e18);
-        console.log("avgRate: %s", (totalRate[FROM_CHAIN_ID] + totalRate[TO_CHAIN_ID]) / simTransfers.length);
+        console.log(StringLib.toRow("totalSent", _totalSent.formatDollar(18, 18)));
+        console.log(StringLib.toRow("totalBonded", _totalBonded.formatDollar(18, 18)));
+        console.log(StringLib.toRow("totalAttestationFees", _totalAttestationFees.formatDollar(18, 18)));
+        console.log(StringLib.toRow("totalWithdrawn", _totalWithdrawn.formatDollar(18, 18)));
         console.log("");
 
         // IERC20 fromToken = tokenForChainId[FROM_CHAIN_ID];
