@@ -34,23 +34,23 @@ contract MessengerFixture is TransporterFixture {
     mapping(uint256 => Dispatcher) public dispatcherForChainId;
     mapping(uint256 => MockExecutor) public executorForChainId;
 
-    function deployMessengers(uint256[] memory _chainIds) public crossChainBroadcast {
-        deployTransporters(_chainIds);
+    function deployMessengers(uint256[] memory chainIds) public crossChainBroadcast {
+        deployTransporters(chainIds);
 
-        for (uint256 i = 0; i < _chainIds.length; i++) {
-            uint256 _chainId = _chainIds[i];
-            on(_chainId);
+        for (uint256 i = 0; i < chainIds.length; i++) {
+            uint256 chainId = chainIds[i];
+            on(chainId);
 
-            ITransportLayer transporter = transporters[_chainId];
+            ITransportLayer transporter = transporters[chainId];
 
             Dispatcher dispatcher = new Dispatcher(address(transporter));
 
             dispatcher.setRoute(HUB_CHAIN_ID, MESSAGE_FEE, MAX_BUNDLE_MESSAGES);
             dispatcher.setRoute(SPOKE_CHAIN_ID_0, MESSAGE_FEE, MAX_BUNDLE_MESSAGES);
             dispatcher.setRoute(SPOKE_CHAIN_ID_1, MESSAGE_FEE, MAX_BUNDLE_MESSAGES);
-            dispatcherForChainId[_chainId] = dispatcher;
+            dispatcherForChainId[chainId] = dispatcher;
 
-            executorForChainId[_chainId] = new MockExecutor();
+            executorForChainId[chainId] = new MockExecutor();
         }
     }
 
