@@ -10,6 +10,8 @@ import "../libraries/MerkleTreeLib.sol";
 import "../interfaces/ITransportLayer.sol";
 import "../interfaces/ICrossChainFees.sol";
 
+import {console} from "forge-std/console.sol";
+
 struct Route {
     uint256 chainId;
     uint128 messageFee;

@@ -26,6 +26,8 @@ import {CrossChainTest, Chain} from "../libraries/CrossChainTest.sol";
 import {TransporterFixture} from "./TransporterFixture.sol";
 import {ITransportLayer} from "../../../contracts/messenger/interfaces/ITransportLayer.sol";
 
+import {console} from "forge-std/console.sol";
+
 contract MessengerFixture is TransporterFixture {
     MessengerEvents messengerEvents;
 
@@ -42,6 +44,7 @@ contract MessengerFixture is TransporterFixture {
             ITransportLayer transporter = transporters[_chainId];
 
             Dispatcher dispatcher = new Dispatcher(address(transporter));
+
             dispatcher.setRoute(HUB_CHAIN_ID, MESSAGE_FEE, MAX_BUNDLE_MESSAGES);
             dispatcher.setRoute(SPOKE_CHAIN_ID_0, MESSAGE_FEE, MAX_BUNDLE_MESSAGES);
             dispatcher.setRoute(SPOKE_CHAIN_ID_1, MESSAGE_FEE, MAX_BUNDLE_MESSAGES);
