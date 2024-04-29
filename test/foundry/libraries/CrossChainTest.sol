@@ -11,7 +11,7 @@ struct Chain {
 }
 
 contract CrossChainTest is Test {
-    uint256 immutable private privateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
+    uint256 immutable internal privateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
     mapping(uint256 => uint256) public forkIdForChainId;
     uint256 public currentChainId;
     bool public crossChainBroadcastInProgress;
@@ -49,7 +49,7 @@ contract CrossChainTest is Test {
         if (_cachedChainId != 0) {
             _on(_cachedChainId);
         } else {
-            // vm.stopBroadcast();
+            stopBroadcast();
             currentChainId = 0;
         }
     }
@@ -58,7 +58,7 @@ contract CrossChainTest is Test {
         crossChainBroadcastInProgress = true;
         _;
         if (currentChainId != 0) {
-            // vm.stopBroadcast();
+            stopBroadcast();
             currentChainId = 0;
         }
     }
@@ -76,7 +76,7 @@ contract CrossChainTest is Test {
 
     function _on(uint256 chainId) private {
         if (currentChainId != 0) {
-            // vm.stopBroadcast();
+            stopBroadcast();
             currentChainId = 0;
         }
 
@@ -89,7 +89,11 @@ contract CrossChainTest is Test {
         }
 
         vm.selectFork(forkId);
-        // vm.startBroadcast(privateKey);
+        startBroadcast();
         currentChainId = chainId;
     }
+
+    function startBroadcast() internal virtual {}
+
+    function stopBroadcast() internal virtual {}
 }
