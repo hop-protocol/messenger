@@ -10,7 +10,7 @@ import {ICrossChainFees} from "../../contracts/messenger/interfaces/ICrossChainF
 import {IMessageDispatcher} from "../../contracts/ERC5164/IMessageDispatcher.sol";
 import {IMessageExecutor} from "../../contracts/ERC5164/IMessageExecutor.sol";
 import {TransporterFixture} from "./fixtures/TransporterFixture.sol";
-import {MessengerFixture} from "./fixtures/MessengerFixture.sol";
+import {RailsFixture} from "./fixtures/RailsFixture.sol";
 import {MockExecutor} from "./MockExecutor.sol";
 import {
     MessengerEventParser,
@@ -39,7 +39,7 @@ struct SimTransfer {
     uint256 amount;
 }
 
-contract RailsSimulation_Test is MessengerFixture {
+contract RailsSimulation_Test is RailsFixture {
     using MessengerEventParser for MessengerEvents;
     using RailsGatewayEventParser for Vm.Log[];
     using RailsGatewayEventParser for TransferSentEvent;
@@ -51,7 +51,7 @@ contract RailsSimulation_Test is MessengerFixture {
 
     uint256[] public chainIds;
     mapping(uint256 => IERC20) public tokenForChainId;
-    mapping(uint256 => RailsGateway) public gatewayForChainId;
+    // mapping(uint256 => RailsGateway) public gatewayForChainId;
 
     uint256 public constant AMOUNT = 100 * 1e18;
     uint256 public constant MIN_AMOUNT_OUT = 99 * 1e18;
@@ -64,17 +64,17 @@ contract RailsSimulation_Test is MessengerFixture {
     address public constant user1 = address(2);
     address public constant bonder1 = address(3);
 
-    RailsGatewayEvents railsEvents;
+    // RailsGatewayEvents railsEvents;
 
     SimTransfer[] public simTransfers;
 
-    mapping(uint256 => uint256) totalSent;
-    mapping(uint256 => uint256) totalBonded;
-    mapping(uint256 => uint256) totalAttestationFees;
-    mapping(uint256 => uint256) totalWithdrawn;
-    mapping(uint256 => uint256) totalRate;
-    mapping(uint256 => uint256) lastBondTimestamp;
-    mapping(uint256 => MessageSentEvent) latestMessageSent;
+    // mapping(uint256 => uint256) totalSent;
+    // mapping(uint256 => uint256) totalBonded;
+    // mapping(uint256 => uint256) totalAttestationFees;
+    // mapping(uint256 => uint256) totalWithdrawn;
+    // mapping(uint256 => uint256) totalRate;
+    // mapping(uint256 => uint256) lastBondTimestamp;
+    // mapping(uint256 => MessageSentEvent) latestMessageSent;
 
 
     constructor() {
@@ -495,19 +495,8 @@ contract RailsSimulation_Test is MessengerFixture {
         RailsGateway fromRailsGateway = gatewayForChainId[FROM_CHAIN_ID];
         bytes32 pathId = fromRailsGateway.getPathId(FROM_CHAIN_ID, fromToken, TO_CHAIN_ID, toToken);
 
-        withdrawAll(FROM_CHAIN_ID, pathId);
-        withdrawAll(TO_CHAIN_ID, pathId);
-    }
-
-    function withdrawAll(uint256 chainId, bytes32 pathId) internal broadcastOn(chainId) {
-        vm.startPrank(bonder1);
-        RailsGateway gateway = gatewayForChainId[chainId];
-        uint256 _lastBondTimestamp = lastBondTimestamp[chainId];
-        if (_lastBondTimestamp != 0) {
-            uint256 amount = gateway.withdrawAll(pathId, _lastBondTimestamp);
-            totalWithdrawn[chainId] += amount;
-        }
-        vm.stopPrank();
+        withdrawAll(FROM_CHAIN_ID, pathId, bonder1);
+        withdrawAll(TO_CHAIN_ID, pathId, bonder1);
     }
 
     function processSimTransfer(SimTransfer storage simTransfer) internal crossChainBroadcast() {
@@ -544,148 +533,5 @@ contract RailsSimulation_Test is MessengerFixture {
         transferBondedEvent.printEvent();
 
         latestMessageSent[simTransfer.fromChainId] = messageSentEvent;
-    }
-
-    function send(
-        address from,
-        uint256 fromChainId,
-        IERC20 fromToken,
-        uint256 toChainId,
-        IERC20 toToken,
-        address to,
-        uint256 amount,
-        uint256 minAmountOut
-    )
-        internal
-        crossChainBroadcast
-        returns (TransferSentEvent storage, MessageSentEvent storage)
-    {
-        vm.startPrank(from);
-
-        bytes32 pathId;
-        bytes32 attestedCheckpoint;
-        // get latest claim
-        {
-            on(fromChainId);
-
-            RailsGateway fromRailsGateway = gatewayForChainId[fromChainId];
-            pathId = fromRailsGateway.getPathId(fromChainId, IERC20(address(fromToken)), toChainId, IERC20(address(toToken)));
-            attestedCheckpoint = fromRailsGateway.getLatestClaim(pathId);
-        }
-
-        // check the claim at destination
-        if (attestedCheckpoint != bytes32(0)) {
-            on(toChainId);
-
-            RailsGateway toRailsGateway = gatewayForChainId[toChainId];
-            require(toRailsGateway.isCheckpointValid(pathId, attestedCheckpoint) == true, "invalid attested checkpoint");
-        }
-
-        // send
-        {
-            on(fromChainId);
-
-            RailsGateway fromRailsGateway = gatewayForChainId[fromChainId];
-            uint256 fee = fromRailsGateway.getFee(pathId);
-
-            fromToken.approve(address(fromRailsGateway), amount);
-            vm.recordLogs();
-            // console.log("send attestedCheckpoint: %x", uint256(attestedCheckpoint));
-            fromRailsGateway.send{
-                value: fee
-            }(
-                pathId,
-                to,
-                amount,
-                minAmountOut,
-                attestedCheckpoint
-            );
-
-            vm.stopPrank();
-        }
-
-        TransferSentEvent storage transferSentEvent;
-        MessageSentEvent storage messageSentEvent;
-
-        {
-            Vm.Log[] memory logs = vm.getRecordedLogs();
-            {
-                (uint256 startIndex, uint256 numEvents) = railsEvents.getTransferSentEvents(logs);
-                require (numEvents == 1, "invalid number of railsEvents");
-                transferSentEvent = railsEvents.transferSentEvents[startIndex];
-            }
-
-            {
-                (uint256 startIndex, uint256 numEvents) = messengerEvents.getMessageSentEvents(logs);
-                require(numEvents == 1, "Duplicate events found");
-                messageSentEvent = messengerEvents.messageSentEvents[startIndex];
-            }
-        }
-
-        totalSent[fromChainId] += amount;
-        totalAttestationFees[fromChainId] += transferSentEvent.attestationFee;
-
-        return (transferSentEvent, messageSentEvent);
-    }
-
-    function bond(address bonder, TransferSentEvent storage transferSentEvent) internal crossChainBroadcast returns (TransferBondedEvent storage) {
-        bytes32 pathId = transferSentEvent.pathId;
-        RailsGateway toRailsGateway;
-        uint256 toChainId;
-        {
-            vm.startPrank(bonder);
-            uint256 fromChainId = transferSentEvent.chainId;
-            on(fromChainId);
-            RailsGateway fromRailsGateway = gatewayForChainId[fromChainId];
-
-            ( , , uint256 _toChainId, IERC20 toToken) = fromRailsGateway.getPathInfo(pathId);
-            toChainId = _toChainId;
-
-            on(toChainId);
-            toRailsGateway = gatewayForChainId[toChainId];
-
-            uint256 amount = transferSentEvent.amount;
-            toToken.approve(address(toRailsGateway), amount * 20);
-        }
-        vm.recordLogs();
-        // console.log("bond attestedCheckpoint: %x", uint256(transferSentEvent.attestedCheckpoint));
-        toRailsGateway.bond(
-            pathId,
-            transferSentEvent.checkpoint,
-            transferSentEvent.to,
-            transferSentEvent.amount,
-            transferSentEvent.totalSent,
-            transferSentEvent.nonce,
-            transferSentEvent.attestedCheckpoint
-        );
-        Vm.Log[] memory logs = vm.getRecordedLogs();
-
-        (uint256 startIndex, uint256 numEvents) = railsEvents.getTransferBondedEvents(logs);
-        require (numEvents == 1, "No TransferBondedEvent found");
-        TransferBondedEvent storage transferBondedEvent = railsEvents.transferBondedEvents[startIndex];
-
-        vm.stopPrank();
-
-        totalBonded[toChainId] += transferBondedEvent.amount;
-        lastBondTimestamp[toChainId] = transferBondedEvent.timestamp;
-
-        return transferBondedEvent;
-    }
-
-    function withdraw(
-        uint256 chainId,
-        address bonder,
-        uint256 amount,
-        bytes32 pathId,
-        uint256 time
-    )
-        internal
-        broadcastOn(chainId)
-    {
-        vm.startPrank(bonder);
-        RailsGateway gateway = gatewayForChainId[chainId];
-
-        gateway.withdrawAll(pathId, time);
-        vm.stopPrank();
     }
 }
