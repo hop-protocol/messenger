@@ -470,7 +470,10 @@ contract RailsSimulation_Test is RailsFixture {
         uint256 _totalBonded = totalBonded[FROM_CHAIN_ID] + totalBonded[TO_CHAIN_ID];
         uint256 _totalAttestationFees = totalAttestationFees[FROM_CHAIN_ID] + totalAttestationFees[TO_CHAIN_ID];
         uint256 _totalWithdrawn = totalWithdrawn[FROM_CHAIN_ID] + totalWithdrawn[TO_CHAIN_ID];
-        uint256 _avgRate = (totalRate[FROM_CHAIN_ID] + totalRate[TO_CHAIN_ID]) / simTransfers.length;
+        uint256 _avgRate = 0;
+        if (simTransfers.length > 0) {
+            _avgRate = (totalRate[FROM_CHAIN_ID] + totalRate[TO_CHAIN_ID]) / simTransfers.length;
+        }
 
         console.log("");
         console.log(StringLib.toRow("totalSent", _totalSent.formatDollar(18, 18)));

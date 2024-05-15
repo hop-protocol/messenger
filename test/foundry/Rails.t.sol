@@ -89,9 +89,9 @@ contract RailsGateway_Test is MessengerFixture {
             on(chainId);
 
             IERC20 token = new MockToken();
-            token.transfer(address(user1), 1000 * 1e18);
-            token.transfer(address(user2), 1000 * 1e18);
-            token.transfer(address(bonder1), 1000 * 1e18);
+            MockToken(address(token)).deal(address(user1), 1000 * 1e18);
+            MockToken(address(token)).deal(address(user2), 1000 * 1e18);
+            MockToken(address(token)).deal(address(bonder1), 1000 * 1e18);
             tokenForChainId[chainId] = token;
         }
 
@@ -279,18 +279,20 @@ contract RailsGateway_Test is MessengerFixture {
             toRailsGateway = gatewayForChainId[toChainId];
 
             uint256 amount = transferSentEvent.amount;
-            toToken.approve(address(toRailsGateway), amount);
+            toToken.approve(address(toRailsGateway), amount * 101/100);
         }
-        vm.recordLogs();
-        toRailsGateway.bond(
+
+        toRailsGateway.postClaim(
             pathId,
-            transferSentEvent.checkpoint,
+            transferSentEvent.transferId,
             transferSentEvent.to,
             transferSentEvent.amount,
             transferSentEvent.totalSent,
-            transferSentEvent.nonce,
             transferSentEvent.attestedCheckpoint
         );
+
+        vm.recordLogs();
+        toRailsGateway.bond(pathId, transferSentEvent.transferId);
         Vm.Log[] memory logs = vm.getRecordedLogs();
 
         (uint256 startIndex, uint256 numEvents) = gatewayEvents.getTransferBondedEvents(logs);

@@ -56,6 +56,7 @@ contract MessengerFixture is TransporterFixture {
 
     function relayMessage(MessageSentEvent storage messageSentEvent) internal crossChainBroadcast {
         uint256 toChainId = messageSentEvent.toChainId;
+        if (toChainId == 0) return;
 
         on(messageSentEvent.toChainId);
 
