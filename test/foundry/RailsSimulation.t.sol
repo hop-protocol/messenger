@@ -76,7 +76,6 @@ contract RailsSimulation_Test is RailsFixture {
     // mapping(uint256 => uint256) lastBondTimestamp;
     // mapping(uint256 => MessageSentEvent) latestMessageSent;
 
-
     constructor() {
         nameForAddress[deployer] = "DEPLOYER";
         nameForAddress[user1] = "USER 1";
@@ -183,6 +182,9 @@ contract RailsSimulation_Test is RailsFixture {
                 );
             }
         }
+
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 1 * 1e22));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 1 * 1e22));
 
         simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 45 * 1e22));
         simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 47 * 1e9));
@@ -423,7 +425,8 @@ contract RailsSimulation_Test is RailsFixture {
         simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 93 * 1e21));
         simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 1 * 1e19));
         simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 5 * 1e22));
-        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 28514481046626596013834));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 370000 * 1e18));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 680000 * 1e18));
 
         vm.stopPrank();
     }
@@ -435,7 +438,7 @@ contract RailsSimulation_Test is RailsFixture {
         for (uint256 i = 0; i < simTransfers.length; i++) {
             processSimTransfer(simTransfers[i]);
         }
-
+    
         console.log("");
         printTokenBalances();
         printGatewayTokenBalances();
@@ -481,15 +484,6 @@ contract RailsSimulation_Test is RailsFixture {
         console.log(StringLib.toRow("totalAttestationFees", _totalAttestationFees.formatDollar(18, 18)));
         console.log(StringLib.toRow("totalWithdrawn", _totalWithdrawn.formatDollar(18, 18)));
         console.log("");
-
-        // IERC20 fromToken = tokenForChainId[FROM_CHAIN_ID];
-        // IERC20 toToken = tokenForChainId[TO_CHAIN_ID];
-        // bytes32 pathId = fromRailsGateway.getPathId(FROM_CHAIN_ID, fromToken, TO_CHAIN_ID, toToken);
-        // withdrawAll(FROM_CHAIN_ID, pathId);
-        // withdrawAll(TO_CHAIN_ID, pathId);
-
-        // printTokenBalance(FROM_CHAIN_ID, address(gatewayForChainId[FROM_CHAIN_ID]));
-        // printTokenBalance(TO_CHAIN_ID, address(gatewayForChainId[TO_CHAIN_ID]));
     }
 
     function withdrawAll() internal broadcastOn(FROM_CHAIN_ID) {
@@ -531,6 +525,7 @@ contract RailsSimulation_Test is RailsFixture {
         uint256 received = afterBalance - beforeBalance;
 
         uint256 rate = received * ONE_TKN / transferSentEvent.amount;
+        console.log("rate", rate);
         totalRate[simTransfer.fromChainId] += rate;
 
         transferBondedEvent.printEvent();
