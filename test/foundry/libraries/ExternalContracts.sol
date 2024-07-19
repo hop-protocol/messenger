@@ -22,6 +22,12 @@ library ExternalContracts {
                 0x4200000000000000000000000000000000000007,
                 200_000
             );
+        } else if (chainId == 42069) {
+            return OPStackConfig(
+                0x0000000000000000000000000000000000000001,
+                0x4200000000000000000000000000000000000007,
+                200_000
+            );
         }
 
         console.log("No OPStackConfig for chainId", chainId);

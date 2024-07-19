@@ -11,7 +11,6 @@ struct Chain {
 }
 
 contract CrossChainTest is Test {
-    uint256 immutable internal privateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
     mapping(uint256 => uint256) public forkIdForChainId;
     uint256 public currentChainId;
     bool public crossChainBroadcastInProgress;
@@ -34,6 +33,15 @@ contract CrossChainTest is Test {
                 84532,
                 "base_sepolia",
                 vm.envString("RPC_ENDPOINT_BASE_SEPOLIA")
+            )
+        );
+        setChain(
+            "hop_sepolia", 
+            Chain(
+                "Hop Sepolia",
+                42069,
+                "hop_sepolia",
+                vm.envString("RPC_ENDPOINT_HOP_SEPOLIA")
             )
         );
 
