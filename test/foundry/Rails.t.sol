@@ -20,6 +20,7 @@ import {
     TransferBondedEvent
 } from "./libraries/RailsGatewayEventParser.sol";
 import {HUB_CHAIN_ID, SPOKE_CHAIN_ID_0, SPOKE_CHAIN_ID_1} from "./libraries/Constants.sol";
+import {Hop} from "../../contracts/rails/libraries/RailsPathLib.sol";
 
 import {console} from "forge-std/console.sol";
 
@@ -112,9 +113,7 @@ contract RailsGateway_Test is MessengerFixture {
                     counterpartToken,
                     IMessageDispatcher(address(dispatcherForChainId[chainId])),
                     IMessageExecutor(address(executorForChainId[chainId])),
-                    5_000_000 * 1e18,
-                    5_000_000 * 1e18,
-                    200000000000000
+                    5_000_000 * 1e18
                 );
             }
         }
@@ -243,15 +242,18 @@ contract RailsGateway_Test is MessengerFixture {
 
         fromToken.approve(address(fromRailsGateway), amount);
         vm.recordLogs();
-        bytes32 attestedCheckpoint = bytes32(0);
+        bytes32 attestedClaimId = bytes32(0);
+        Hop[] memory nextHops = new Hop[](0);
+        uint256 maxTotalSent = fromRailsGateway.getTotalSent(pathId);
         fromRailsGateway.send{
             value: fee
         }(
             pathId,
             to,
             amount,
-            minAmountOut,
-            attestedCheckpoint
+            attestedClaimId,
+            nextHops,
+            maxTotalSent
         );
         Vm.Log[] memory logs = vm.getRecordedLogs();
 
@@ -288,11 +290,14 @@ contract RailsGateway_Test is MessengerFixture {
             transferSentEvent.to,
             transferSentEvent.amount,
             transferSentEvent.totalSent,
-            transferSentEvent.attestedCheckpoint
+            transferSentEvent.attestedClaimId,
+            transferSentEvent.attestedTotalClaims,
+            bytes32(0)
         );
 
         vm.recordLogs();
-        toRailsGateway.bond(pathId, transferSentEvent.transferId);
+        Hop[] memory nextHops = new Hop[](0);
+        toRailsGateway.bond(pathId, transferSentEvent.transferId, nextHops);
         Vm.Log[] memory logs = vm.getRecordedLogs();
 
         (uint256 startIndex, uint256 numEvents) = gatewayEvents.getTransferBondedEvents(logs);

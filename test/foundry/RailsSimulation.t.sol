@@ -30,7 +30,6 @@ import {
     ONE_TKN
 } from "./libraries/Constants.sol";
 import {StringLib} from "./libraries/StringLib.sol";
-
 import {console} from "forge-std/console.sol";
 
 struct SimTransfer {
@@ -176,9 +175,7 @@ contract RailsSimulation_Test is RailsFixture {
                     counterpartToken,
                     IMessageDispatcher(address(dispatcherForChainId[chainId])),
                     IMessageExecutor(address(executorForChainId[chainId])),
-                    10_000_000_000 * ONE_TKN,
-                    10_000_000_000 * ONE_TKN,
-                    200000000000000
+                    10_000_000_000 * ONE_TKN
                 );
             }
         }
@@ -471,7 +468,6 @@ contract RailsSimulation_Test is RailsFixture {
 
         uint256 _totalSent = totalSent[FROM_CHAIN_ID] + totalSent[TO_CHAIN_ID];
         uint256 _totalBonded = totalBonded[FROM_CHAIN_ID] + totalBonded[TO_CHAIN_ID];
-        uint256 _totalAttestationFees = totalAttestationFees[FROM_CHAIN_ID] + totalAttestationFees[TO_CHAIN_ID];
         uint256 _totalWithdrawn = totalWithdrawn[FROM_CHAIN_ID] + totalWithdrawn[TO_CHAIN_ID];
         uint256 _avgRate = 0;
         if (simTransfers.length > 0) {
@@ -481,7 +477,6 @@ contract RailsSimulation_Test is RailsFixture {
         console.log("");
         console.log(StringLib.toRow("totalSent", _totalSent.formatDollar(18, 18)));
         console.log(StringLib.toRow("totalBonded", _totalBonded.formatDollar(18, 18)));
-        console.log(StringLib.toRow("totalAttestationFees", _totalAttestationFees.formatDollar(18, 18)));
         console.log(StringLib.toRow("totalWithdrawn", _totalWithdrawn.formatDollar(18, 18)));
         console.log("");
     }
@@ -499,7 +494,6 @@ contract RailsSimulation_Test is RailsFixture {
     function processSimTransfer(SimTransfer storage simTransfer) internal crossChainBroadcast() {
         IERC20 fromToken = tokenForChainId[simTransfer.fromChainId];
         IERC20 toToken = tokenForChainId[simTransfer.toChainId];
-        uint256 minAmountOut = 0;
 
         (
             TransferSentEvent storage transferSentEvent,
@@ -511,8 +505,7 @@ contract RailsSimulation_Test is RailsFixture {
             simTransfer.toChainId,
             toToken,
             user1,
-            simTransfer.amount,
-            minAmountOut
+            simTransfer.amount
         );
         transferSentEvent.printEvent();
 
