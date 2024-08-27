@@ -20,7 +20,7 @@ contract SpokeTransporter is Ownable, Transporter {
     event ExcessFeesDistributed(address indexed to, uint256 amount);
 
     /* constants */
-    uint256 public immutable hubChainId;
+    uint256 public immutable l1ChainId;
 
     /* config*/
     address public hubTransporterConnector;
@@ -41,8 +41,8 @@ contract SpokeTransporter is Ownable, Transporter {
         _;
     }
 
-    constructor(uint256 _hubChainId, uint256 _pendingFeeBatchSize) {
-        hubChainId = _hubChainId;
+    constructor(uint256 _l1ChainId, uint256 _pendingFeeBatchSize) {
+        l1ChainId = _l1ChainId;
         pendingFeeBatchSize = _pendingFeeBatchSize;
     }
 

@@ -19,7 +19,7 @@ import {
     TransferSentEvent,
     TransferBondedEvent
 } from "./libraries/RailsGatewayEventParser.sol";
-import {HUB_CHAIN_ID, SPOKE_CHAIN_ID_0, SPOKE_CHAIN_ID_1} from "./libraries/Constants.sol";
+import {L1_CHAIN_ID, SPOKE_CHAIN_ID_0, SPOKE_CHAIN_ID_1} from "./libraries/Constants.sol";
 import {Hop} from "../../contracts/rails/libraries/RailsPathLib.sol";
 
 import {console} from "forge-std/console.sol";
@@ -77,13 +77,13 @@ contract RailsGateway_Test is MessengerFixture {
         vm.deal(user2, 1e18);
         vm.deal(bonder1, 1e18);
 
-        chainIds.push(HUB_CHAIN_ID);
+        chainIds.push(L1_CHAIN_ID);
         chainIds.push(SPOKE_CHAIN_ID_0);
         // chainIds.push(SPOKE_CHAIN_ID_1);
 
         vm.startPrank(deployer);
 
-        deployMessengers(chainIds);
+        deployMessengers(L1_CHAIN_ID, chainIds);
 
         for (uint256 i = 0; i < chainIds.length; i++) {
             uint256 chainId = chainIds[i];

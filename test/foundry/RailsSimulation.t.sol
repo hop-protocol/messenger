@@ -5,7 +5,7 @@ import {Vm} from "forge-std/Vm.sol";
 import {CrossChainTest} from "./libraries/CrossChainTest.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {MockToken} from "../../contracts/test/MockToken.sol";
-import {RailsGateway} from "../../contracts/rails/RailsGateway.sol";
+import {RailsGateway, Hop} from "../../contracts/rails/RailsGateway.sol";
 import {ICrossChainFees} from "../../contracts/messenger/interfaces/ICrossChainFees.sol";
 import {IMessageDispatcher} from "../../contracts/ERC5164/IMessageDispatcher.sol";
 import {IMessageExecutor} from "../../contracts/ERC5164/IMessageExecutor.sol";
@@ -24,7 +24,7 @@ import {
     TransferBondedEvent
 } from "./libraries/RailsGatewayEventParser.sol";
 import {
-    HUB_CHAIN_ID,
+    L1_CHAIN_ID,
     SPOKE_CHAIN_ID_0,
     SPOKE_CHAIN_ID_1,
     ONE_TKN
@@ -141,12 +141,12 @@ contract RailsSimulation_Test is RailsFixture {
         vm.deal(user1, 10 * 1e18);
         vm.deal(bonder1, 10 * 1e18);
 
-        chainIds.push(HUB_CHAIN_ID);
+        chainIds.push(L1_CHAIN_ID);
         chainIds.push(SPOKE_CHAIN_ID_0);
 
         vm.startPrank(deployer);
 
-        deployMessengers(chainIds);
+        deployMessengers(L1_CHAIN_ID, chainIds);
 
         for (uint256 i = 0; i < chainIds.length; i++) {
             uint256 chainId = chainIds[i];
@@ -511,7 +511,7 @@ contract RailsSimulation_Test is RailsFixture {
 
         on(simTransfer.toChainId);
         uint256 beforeBalance = toToken.balanceOf(user1);
-        TransferBondedEvent storage transferBondedEvent = bond(bonder1, transferSentEvent);
+        (TransferBondedEvent storage transferBondedEvent,) = bond(bonder1, transferSentEvent);
         uint256 afterBalance = toToken.balanceOf(user1);
 
         uint256 sent = transferSentEvent.amount;

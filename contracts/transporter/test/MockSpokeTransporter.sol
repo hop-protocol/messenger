@@ -7,11 +7,11 @@ contract MockSpokeTransporter is SpokeTransporter {
     uint256 public mockChainId;
 
     constructor(
-        uint256 hubChainId,
+        uint256 l1ChainId,
         uint256 pendingFeeBatchSize,
         uint256 _mockChainId
     )
-        SpokeTransporter(hubChainId, pendingFeeBatchSize)
+        SpokeTransporter(l1ChainId, pendingFeeBatchSize)
     {
         mockChainId = _mockChainId;
     }

@@ -17,7 +17,7 @@ import {
     MessageSentEvent,
     MessengerEvents
 } from './libraries/MessengerEventParser.sol';
-import {HUB_CHAIN_ID, SPOKE_CHAIN_ID_0, SPOKE_CHAIN_ID_1} from './libraries/Constants.sol';
+import {L1_CHAIN_ID, SPOKE_CHAIN_ID_0, SPOKE_CHAIN_ID_1} from './libraries/Constants.sol';
 
 contract Messenger_Test is MessengerFixture {
     using MessengerEventParser for MessengerEvents;
@@ -43,18 +43,18 @@ contract Messenger_Test is MessengerFixture {
         vm.deal(deployer, 1e18);
         vm.deal(user1, 1e18);
 
-        chainIds.push(HUB_CHAIN_ID);
+        chainIds.push(L1_CHAIN_ID);
         chainIds.push(SPOKE_CHAIN_ID_0);
         chainIds.push(SPOKE_CHAIN_ID_1);
 
         vm.startPrank(deployer);
-        deployMessengers(chainIds);
+        deployMessengers(L1_CHAIN_ID, chainIds);
         vm.stopPrank();
     }
 
     function test_messenger() public crossChainBroadcast {
-        on(HUB_CHAIN_ID);
-        IMessageDispatcher dispatcher = IMessageDispatcher(address(dispatcherForChainId[HUB_CHAIN_ID]));
+        on(L1_CHAIN_ID);
+        IMessageDispatcher dispatcher = IMessageDispatcher(address(dispatcherForChainId[L1_CHAIN_ID]));
 
         uint256[] memory chains = new uint256[](1);
         chains[0] = SPOKE_CHAIN_ID_0;

@@ -15,10 +15,28 @@ struct MessageSentEvent {
 
 struct MessengerEvents {
     MessageSentEvent[] messageSentEvents;
+    MessageSentEvent nullMessageSentEvent;
 }
 
 /// @notice - WARNING: Do not switch chains before parsing logs. block.chainid is assigned to the event struct.
 library MessengerEventParser {
+    using MessengerEventParser for MessengerEvents;
+
+    function getMessageSentEvent(
+        MessengerEvents storage events,
+        Vm.Log[] memory logs
+    )
+        internal
+        returns(MessageSentEvent storage messageSentEvent)
+    {
+        (uint256 startIndex, uint256 numEvents) = events.getMessageSentEvents(logs);
+        if (numEvents == 0) {
+            return events.nullMessageSentEvent;
+        } else {
+            return events.messageSentEvents[startIndex];
+        }
+    }
+
     function getMessageSentEvents(
         MessengerEvents storage events,
         Vm.Log[] memory logs

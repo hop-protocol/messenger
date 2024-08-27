@@ -10,7 +10,7 @@ import {ExecutorManager} from "../../../contracts/messenger/messenger/ExecutorMa
 import {MockExecutor} from "../MockExecutor.sol";
 
 import {
-    HUB_CHAIN_ID,
+    L1_CHAIN_ID,
     SPOKE_CHAIN_ID_0,
     SPOKE_CHAIN_ID_1,
     MESSAGE_FEE,
@@ -28,29 +28,39 @@ import {ITransportLayer} from "../../../contracts/messenger/interfaces/ITranspor
 
 import {console} from "forge-std/console.sol";
 
+contract Bump {}
+
 contract MessengerFixture is TransporterFixture {
     MessengerEvents messengerEvents;
 
     mapping(uint256 => Dispatcher) public dispatcherForChainId;
     mapping(uint256 => MockExecutor) public executorForChainId;
 
-    function deployMessengers(uint256[] memory chainIds) public crossChainBroadcast {
-        deployTransporters(chainIds);
+    function deployMessengers(uint256 l1ChainId, uint256[] memory chainIds) public crossChainBroadcast {
+        deployTransporters(l1ChainId, chainIds);
+
 
         for (uint256 i = 0; i < chainIds.length; i++) {
-            uint256 chainId = chainIds[i];
-            on(chainId);
+            on(chainIds[i]);
 
-            ITransportLayer transporter = transporters[chainId];
+            // normalize nonce
+            if (chainIds[i] != l1ChainId) {
+                for(uint256 j = 0; j < chainIds.length - 2; j++) {
+                    // new Bump();
+                }
+            }
+
+            ITransportLayer transporter = transporters[chainIds[i]];
 
             Dispatcher dispatcher = new Dispatcher(address(transporter));
+            dispatcherForChainId[chainIds[i]] = dispatcher;
 
-            dispatcher.setRoute(HUB_CHAIN_ID, MESSAGE_FEE, MAX_BUNDLE_MESSAGES);
-            dispatcher.setRoute(SPOKE_CHAIN_ID_0, MESSAGE_FEE, MAX_BUNDLE_MESSAGES);
-            dispatcher.setRoute(SPOKE_CHAIN_ID_1, MESSAGE_FEE, MAX_BUNDLE_MESSAGES);
-            dispatcherForChainId[chainId] = dispatcher;
+            for (uint256 j = 0; j < chainIds.length; j++) {
+                if (i == j) continue;
+                dispatcher.setRoute(chainIds[j], MESSAGE_FEE, MAX_BUNDLE_MESSAGES);
+            }
 
-            executorForChainId[chainId] = new MockExecutor();
+            executorForChainId[chainIds[i]] = new MockExecutor();
         }
     }
 

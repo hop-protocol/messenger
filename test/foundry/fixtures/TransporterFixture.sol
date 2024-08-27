@@ -11,7 +11,7 @@ import {
     RELAY_WINDOW,
     MAX_TRANSPORT_FEE_ABSOLUTE,
     MAX_TRANSPORT_FEE_BPS,
-    HUB_CHAIN_ID,
+    L1_CHAIN_ID,
     SPOKE_CHAIN_ID_0,
     SPOKE_CHAIN_ID_1,
     FULL_POOL_SIZE
@@ -23,7 +23,7 @@ import {HubTransporter} from "../../../contracts/transporter/HubTransporter.sol"
 import {SpokeTransporter} from  "../../../contracts/transporter/SpokeTransporter.sol";
 
 contract TransporterFixture is CrossChainTest {
-    uint256 public hubChainId;
+    uint256 public l1ChainId;
     uint256[] public spokeChainIds;
     HubTransporter public hubTransporter;
     SpokeTransporter[] public spokeTransporters;
@@ -31,38 +31,35 @@ contract TransporterFixture is CrossChainTest {
     mapping(uint256 => address) public hubConnectors;
     mapping(uint256 => address) public spokeConnectors;
 
-    function deployTransporters(uint256[] memory chainIds) public virtual {
-        uint256 _hubChainId = chainIds[0];
-        hubChainId = _hubChainId;
+    function deployTransporters(uint256 _l1ChainId, uint256[] memory chainIds) public virtual {
+        l1ChainId = _l1ChainId;
+        deployHubTransporter(_l1ChainId);
 
-        deployHubTransporter(_hubChainId);
-
-        spokeChainIds = new uint256[](chainIds.length - 1);
-        for (uint256 i = 1; i < chainIds.length; i++) {
-            spokeChainIds[i - 1] = chainIds[i];
-            deploySpokeTransporter(_hubChainId, chainIds[i]);
-            deployConnectors(_hubChainId, chainIds[i], address(hubTransporter), address(spokeTransporters[i - 1]));
+        for (uint256 i = 0; i < chainIds.length; i++) {
+            if (chainIds[i] == _l1ChainId) continue;
+            deploySpokeTransporter(_l1ChainId, chainIds[i]);
+            deployConnectors(_l1ChainId, chainIds[i], address(hubTransporter), address(spokeTransporters[i - 1]));
         }
     }
 
-    function deployHubTransporter(uint256 _hubChainId) public broadcastOn(_hubChainId) {
+    function deployHubTransporter(uint256 _l1ChainId) public broadcastOn(_l1ChainId) {
         hubTransporter = new HubTransporter(
             RELAY_WINDOW,
             MAX_TRANSPORT_FEE_ABSOLUTE,
             MAX_TRANSPORT_FEE_BPS
         );
 
-        transporters[_hubChainId] = Transporter(address(hubTransporter));
+        transporters[_l1ChainId] = Transporter(address(hubTransporter));
     }
 
-    function deploySpokeTransporter(uint256 _hubChainId, uint256 spokeChainId) public broadcastOn(spokeChainId) {
-        SpokeTransporter spokeTransporter = new SpokeTransporter(_hubChainId, FULL_POOL_SIZE);
+    function deploySpokeTransporter(uint256 _l1ChainId, uint256 spokeChainId) public broadcastOn(spokeChainId) {
+        SpokeTransporter spokeTransporter = new SpokeTransporter(_l1ChainId, FULL_POOL_SIZE);
         transporters[spokeChainId] = spokeTransporter;
         spokeTransporters.push(spokeTransporter);
     }
 
     function deployConnectors(
-        uint256 _hubChainId,
+        uint256 _l1ChainId,
         uint256 spokeChainId,
         address hubTarget,
         address spokeTarget
@@ -72,7 +69,7 @@ contract TransporterFixture is CrossChainTest {
     {
         OPStackConfig memory opStackConfig = ExternalContracts.getOpStackConfig(spokeChainId);
 
-        on(_hubChainId);
+        on(_l1ChainId);
         L1OptimismConnector l1OptimismConnector = new L1OptimismConnector(
             opStackConfig.l1CrossDomainMessenger,
             opStackConfig.defaultGasLimit
@@ -84,7 +81,7 @@ contract TransporterFixture is CrossChainTest {
             opStackConfig.defaultGasLimit
         );
 
-        on(_hubChainId);
+        on(_l1ChainId);
         l1OptimismConnector.initialize(hubTarget, address(l2OptimismConnector));
 
         on(spokeChainId);
