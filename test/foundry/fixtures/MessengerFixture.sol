@@ -28,8 +28,6 @@ import {ITransportLayer} from "../../../contracts/messenger/interfaces/ITranspor
 
 import {console} from "forge-std/console.sol";
 
-contract Bump {}
-
 contract MessengerFixture is TransporterFixture {
     MessengerEvents messengerEvents;
 
@@ -46,7 +44,8 @@ contract MessengerFixture is TransporterFixture {
             // normalize nonce
             if (chainIds[i] != l1ChainId) {
                 for(uint256 j = 0; j < chainIds.length - 2; j++) {
-                    // new Bump();
+                    payable(address(0)).transfer(0);
+                    payable(address(0)).transfer(0);
                 }
             }
 
