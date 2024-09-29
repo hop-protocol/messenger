@@ -280,7 +280,7 @@ contract RailsGateway_Test is MessengerFixture {
             on(toChainId);
             toRailsGateway = gatewayForChainId[toChainId];
 
-            uint256 amount = transferSentEvent.amount;
+            uint256 amount = transferSentEvent.amountOut;
             toToken.approve(address(toRailsGateway), amount * 101/100);
         }
 
@@ -288,10 +288,10 @@ contract RailsGateway_Test is MessengerFixture {
             pathId,
             transferSentEvent.transferId,
             transferSentEvent.to,
-            transferSentEvent.amount,
+            transferSentEvent.amountOut,
             transferSentEvent.totalSent,
+            transferSentEvent.totalClaims,
             transferSentEvent.attestedClaimId,
-            transferSentEvent.attestedTotalClaims,
             bytes32(0)
         );
 

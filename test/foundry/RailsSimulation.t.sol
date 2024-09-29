@@ -181,7 +181,7 @@ contract RailsSimulation_Test is RailsFixture {
         }
 
         simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 1 * 1e22));
-        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 1 * 1e22));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 9999990000009999990000));
 
         simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 45 * 1e22));
         simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 47 * 1e9));
@@ -422,8 +422,11 @@ contract RailsSimulation_Test is RailsFixture {
         simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 93 * 1e21));
         simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 1 * 1e19));
         simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 5 * 1e22));
-        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 370000 * 1e18));
-        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 680000 * 1e18));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 5 * 1e22));
+        // simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 370000 * 1e18));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 78602324515843084846941));
+        simTransfers.push(SimTransfer(TO_CHAIN_ID, FROM_CHAIN_ID, 617827685660166502));
+        simTransfers.push(SimTransfer(FROM_CHAIN_ID, TO_CHAIN_ID, 38171236));
 
         vm.stopPrank();
     }
@@ -514,10 +517,10 @@ contract RailsSimulation_Test is RailsFixture {
         (TransferBondedEvent storage transferBondedEvent,) = bond(bonder1, transferSentEvent);
         uint256 afterBalance = toToken.balanceOf(user1);
 
-        uint256 sent = transferSentEvent.amount;
+        uint256 sent = simTransfer.amount;
         uint256 received = afterBalance - beforeBalance;
 
-        uint256 rate = received * ONE_TKN / transferSentEvent.amount;
+        uint256 rate = received * ONE_TKN / sent;
         console.log("rate", rate);
         totalRate[simTransfer.fromChainId] += rate;
 

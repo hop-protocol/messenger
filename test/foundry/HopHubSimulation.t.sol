@@ -547,7 +547,7 @@ contract RailsSimulation_Test is RailsFixture {
         {
             uint256 afterBalance = toToken.balanceOf(user1);
             uint256 received = afterBalance - beforeBalance;
-            uint256 rate = received * ONE_TKN / transferSentEvent1.amount;
+            uint256 rate = received * ONE_TKN / simTransfer.amount;
             console.log("rate", rate);
             totalRate[simTransfer.fromChainId] += rate;
         }
