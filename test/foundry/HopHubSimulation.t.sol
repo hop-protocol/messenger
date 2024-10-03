@@ -157,7 +157,7 @@ contract RailsSimulation_Test is RailsFixture {
 
         vm.startPrank(deployer);
 
-        deployRails(L1_CHAIN_ID, HUB_CHAIN_ID, chainIds);
+        deployRails(L1_CHAIN_ID, chainIds);
 
         for (uint256 i = 0; i < chainIds.length; i++) {
             uint256 chainId = chainIds[i];

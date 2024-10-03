@@ -146,7 +146,7 @@ contract RailsSimulation_Test is RailsFixture {
 
         vm.startPrank(deployer);
 
-        deployMessengers(L1_CHAIN_ID, chainIds);
+        deployRails(L1_CHAIN_ID, chainIds);
 
         for (uint256 i = 0; i < chainIds.length; i++) {
             uint256 chainId = chainIds[i];
@@ -161,13 +161,12 @@ contract RailsSimulation_Test is RailsFixture {
         for (uint256 i = 0; i < chainIds.length; i++) {
             uint256 chainId = chainIds[i];
             on(chainId);
-            RailsGateway gateway = new RailsGateway();
-            gatewayForChainId[chainId] = gateway;
+            RailsGateway gateway = gatewayForChainId[chainId];
             IERC20 token = tokenForChainId[chainId];
 
             for (uint256 j = 0; j < chainIds.length; j++) {
+                if (i == j) continue;
                 uint256 counterpartChainId = chainIds[j];
-                if (counterpartChainId == chainId) continue;
                 IERC20 counterpartToken = tokenForChainId[counterpartChainId];
                 bytes32 pathId = gateway.initPath(
                     token,
