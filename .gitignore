@@ -12,7 +12,7 @@ cache_hardhat
 artifacts
 forge-artifacts
 
-notes.txt
+notes
 old_packages
 
 tenderly.yaml
