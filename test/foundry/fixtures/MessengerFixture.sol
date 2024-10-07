@@ -3,7 +3,7 @@ pragma solidity ^0.8.19;
 
 import {console} from "forge-std/console.sol";
 import {Script} from "forge-std/Script.sol";
-import {Vm} from 'forge-std/Vm.sol';
+import {Vm} from "forge-std/Vm.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Dispatcher, Route} from "../../../contracts/messenger/messenger/Dispatcher.sol";
 import {ExecutorManager} from "../../../contracts/messenger/messenger/ExecutorManager.sol";
@@ -37,17 +37,11 @@ contract MessengerFixture is TransporterFixture {
     function deployMessengers(uint256 l1ChainId, uint256[] memory chainIds) public crossChainBroadcast {
         deployTransporters(l1ChainId, chainIds);
 
+        normalizeNonce(chainIds);
 
         for (uint256 i = 0; i < chainIds.length; i++) {
             on(chainIds[i]);
 
-            // normalize nonce
-            if (chainIds[i] != l1ChainId) {
-                for(uint256 j = 0; j < chainIds.length - 2; j++) {
-                    payable(address(0)).transfer(0);
-                    payable(address(0)).transfer(0);
-                }
-            }
 
             ITransportLayer transporter = transporters[chainIds[i]];
 

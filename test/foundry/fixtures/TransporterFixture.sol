@@ -24,7 +24,6 @@ import {SpokeTransporter} from  "../../../contracts/transporter/SpokeTransporter
 
 contract TransporterFixture is CrossChainTest {
     uint256 public l1ChainId;
-    uint256[] public spokeChainIds;
     HubTransporter public hubTransporter;
     SpokeTransporter[] public spokeTransporters;
     mapping(uint256 => Transporter) public transporters;
@@ -32,6 +31,7 @@ contract TransporterFixture is CrossChainTest {
     mapping(uint256 => address) public spokeConnectors;
 
     function deployTransporters(uint256 _l1ChainId, uint256[] memory chainIds) public virtual {
+        normalizeNonce(chainIds);
         l1ChainId = _l1ChainId;
         deployHubTransporter(_l1ChainId);
 
@@ -90,5 +90,32 @@ contract TransporterFixture is CrossChainTest {
         // Save addresses to state
         hubConnectors[spokeChainId] = address(l1OptimismConnector);
         spokeConnectors[spokeChainId] = address(l2OptimismConnector);
+    }
+
+    function normalizeNonce(uint256[] memory chainIds) public crossChainBroadcast {
+        uint256 highestNonce = 0;
+        on(chainIds[0]);
+        (,address msgSender,) = vm.readCallers();
+        for (uint256 i = 0; i < chainIds.length; i++) {
+            on(chainIds[i]);
+
+            uint256 nonce = vm.getNonce(msgSender);
+            if (nonce > highestNonce) {
+                highestNonce = nonce;
+            }
+        }
+        for (uint256 i = 0; i < chainIds.length; i++) {
+            on(chainIds[i]);
+            uint256 nonce = vm.getNonce(msgSender);
+            for (uint256 j = nonce; j < highestNonce; j++) {
+                payable(address(0)).transfer(0);
+            }
+        }
+    }
+}
+
+contract ReturnMessageSender {
+    function msgSender() public view returns (address) {
+        return msg.sender;
     }
 }
