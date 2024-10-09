@@ -3,7 +3,7 @@
 pragma solidity ^0.8.19;
 import {StdChains} from "forge-std/StdChains.sol";
 import {Vm} from "forge-std/Vm.sol";
-import {console} from "forge-std/Console.sol";
+import {console} from "forge-std/console.sol";
 
 struct Chain {
     string name;
