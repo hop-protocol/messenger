@@ -239,21 +239,23 @@ contract RailsGateway_Test is MessengerFixture {
         RailsGateway fromRailsGateway = gatewayForChainId[fromChainId];
         bytes32 pathId = fromRailsGateway.getPathId(fromChainId, IERC20(address(fromToken)), toChainId, IERC20(address(toToken)));
         uint256 fee = fromRailsGateway.getFee(pathId);
+        Hop[] memory hops = new Hop[](1);
+        hops[0].pathId = pathId;
+        hops[0].maxBonderFee = amount * 4 / 10000;
+        hops[0].maxTotalSent = fromRailsGateway.getTotalSent(pathId);
+        hops[0].attestedClaimId = bytes32(0);
 
         fromToken.approve(address(fromRailsGateway), amount);
+
         vm.recordLogs();
-        bytes32 attestedClaimId = bytes32(0);
-        Hop[] memory nextHops = new Hop[](0);
-        uint256 maxTotalSent = fromRailsGateway.getTotalSent(pathId);
+
         fromRailsGateway.send{
             value: fee
         }(
             pathId,
             to,
             amount,
-            attestedClaimId,
-            nextHops,
-            maxTotalSent
+            hops
         );
         Vm.Log[] memory logs = vm.getRecordedLogs();
 
@@ -284,20 +286,27 @@ contract RailsGateway_Test is MessengerFixture {
             toToken.approve(address(toRailsGateway), amount * 101/100);
         }
 
+        Hop[] memory hops = abi.decode(transferSentEvent.hops, (Hop[]));
+        Hop memory initialHop = hops[0];
+
         toRailsGateway.postClaim(
-            pathId,
+            transferSentEvent.pathId,
             transferSentEvent.transferId,
             transferSentEvent.to,
             transferSentEvent.amountOut,
+            initialHop.maxBonderFee,
+            initialHop.attestedClaimId,
             transferSentEvent.totalSent,
             transferSentEvent.totalClaims,
-            transferSentEvent.attestedClaimId,
             bytes32(0)
         );
 
-        vm.recordLogs();
+
+        uint256 bonderFee = transferSentEvent.amountOut * 1 / 10000;        
         Hop[] memory nextHops = new Hop[](0);
-        toRailsGateway.bond(pathId, transferSentEvent.transferId, nextHops);
+
+        vm.recordLogs();
+        toRailsGateway.bond(pathId, transferSentEvent.transferId, bonderFee, nextHops);
         Vm.Log[] memory logs = vm.getRecordedLogs();
 
         (uint256 startIndex, uint256 numEvents) = gatewayEvents.getTransferBondedEvents(logs);
