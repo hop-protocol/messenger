@@ -533,16 +533,18 @@ contract RailsSimulation_Test is RailsFixture {
 
         on(simTransfer.toChainId);
         uint256 beforeBalance = toToken.balanceOf(user1);
+        {
+            (
+                TransferBondedEvent storage transferBondedEvent0,
+                TransferSentEvent storage transferSentEvent1
+            ) = bond(bonder1, transferSentEvent0);
+            transferBondedEvent0.printEvent();
 
-        (
-            TransferBondedEvent storage transferBondedEvent0,
-            TransferSentEvent storage transferSentEvent1
-        ) = bond(bonder1, transferSentEvent0);
-
-        (
-            TransferBondedEvent storage transferBondedEvent1,
-        ) = bond(bonder1, transferSentEvent1);
-
+            (
+                TransferBondedEvent storage transferBondedEvent1,
+            ) = bond(bonder1, transferSentEvent1);
+            transferBondedEvent1.printEvent();
+        }
 
         {
             uint256 afterBalance = toToken.balanceOf(user1);
@@ -551,9 +553,6 @@ contract RailsSimulation_Test is RailsFixture {
             console.log("rate", rate);
             totalRate[simTransfer.fromChainId] += rate;
         }
-
-        transferBondedEvent0.printEvent();
-        transferBondedEvent1.printEvent();
 
         latestMessageSent[simTransfer.fromChainId] = messageSentEvent;
     }
