@@ -238,7 +238,7 @@ contract RailsGateway_Test is MessengerFixture {
         vm.startPrank(from);
         RailsGateway fromRailsGateway = gatewayForChainId[fromChainId];
         bytes32 pathId = fromRailsGateway.getPathId(fromChainId, IERC20(address(fromToken)), toChainId, IERC20(address(toToken)));
-        uint256 fee = fromRailsGateway.getFee(pathId);
+        uint256 fee = fromRailsGateway.getSendFee(pathId);
         Hop[] memory hops = new Hop[](1);
         hops[0].pathId = pathId;
         hops[0].maxBonderFee = amount * 4 / 10000;
