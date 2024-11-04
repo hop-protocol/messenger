@@ -451,7 +451,6 @@ contract RailsSimulation_Test is RailsFixture {
         printTokenBalances();
         printGatewayTokenBalances();
 
-
         console.log("");
         console.log("Relaying final messages for hard confirmation...");
         console.log("");

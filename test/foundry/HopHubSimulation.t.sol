@@ -39,7 +39,7 @@ struct SimTransfer {
     uint256 amount;
 }
 
-contract RailsSimulation_Test is RailsFixture {
+contract HopHubSimulation_Test is RailsFixture {
     using MessengerEventParser for MessengerEvents;
     using RailsGatewayEventParser for Vm.Log[];
     using RailsGatewayEventParser for TransferSentEvent;
@@ -50,6 +50,7 @@ contract RailsSimulation_Test is RailsFixture {
     using StringLib for string[];
 
     uint256[] public chainIds;
+    uint256 hubChainId;
     mapping(uint256 => IERC20) public tokenForChainId;
     // mapping(uint256 => RailsGateway) public gatewayForChainId;
 
@@ -154,6 +155,7 @@ contract RailsSimulation_Test is RailsFixture {
         chainIds.push(HUB_CHAIN_ID);
         chainIds.push(SPOKE_CHAIN_ID_1);
         chainIds.push(SPOKE_CHAIN_ID_0);
+        hubChainId = HUB_CHAIN_ID;
 
         vm.startPrank(deployer);
 
