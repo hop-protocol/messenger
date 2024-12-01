@@ -16,8 +16,20 @@ library StringLib {
         return Strings.toString(value);
     }
 
+    function concat(string memory a, string memory b) internal view returns (string memory) {
+        return string(abi.encodePacked(a, b));
+    }
+
+    function padLeft(uint256 value,  uint256 totalLength) internal view returns (string memory) {
+        return value.toString().padLeft(totalLength);
+    }
+
     function padLeft(string memory original,  uint256 totalLength) internal view returns (string memory) {
         return original.padLeft(totalLength, " ");
+    }
+
+    function padRight(uint256 value,  uint256 totalLength) internal view returns (string memory) {
+        return value.toString().padRight(totalLength);
     }
 
     function padRight(string memory original,  uint256 totalLength) internal view returns (string memory) {
