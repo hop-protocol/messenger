@@ -14,6 +14,7 @@ contract CrossChainTest is Test {
     mapping(uint256 => uint256) public forkIdForChainId;
     uint256 public currentChainId;
     bool public crossChainBroadcastInProgress;
+    uint256 timeToSkip;
 
     constructor() {
         // set non-standard chains
@@ -99,6 +100,12 @@ contract CrossChainTest is Test {
         vm.selectFork(forkId);
         startBroadcast();
         currentChainId = chainId;
+        skip(timeToSkip);
+    }
+
+    function skipTime(uint256 time) internal {
+        timeToSkip += time;
+        skip(timeToSkip);
     }
 
     function startBroadcast() internal virtual {}
