@@ -46,9 +46,6 @@ contract RailsSimulation_Test is RailsFixture {
     uint256 constant FROM_CHAIN_ID = SPOKE_CHAIN_ID_0;
     uint256 constant TO_CHAIN_ID = SPOKE_CHAIN_ID_1;
 
-    function printBalanceRow(string memory name, uint256 balance0, uint256 balance1) internal {
-        console.log(StringLib.toRow(name, balance0.format(18, 18), balance1.format(18, 18)));
-    }
 
     function setUp() public crossChainBroadcast {
         setUpRails();
@@ -61,8 +58,8 @@ contract RailsSimulation_Test is RailsFixture {
         SimTransfer[] memory simTransfers = simulateTransfers(true);
     
         console.log("");
-        printTokenBalances();
-        printGatewayTokenBalances();
+        printTokenBalances(SPOKE_CHAIN_ID_0, SPOKE_CHAIN_ID_1);
+        printGatewayTokenBalances(SPOKE_CHAIN_ID_0, SPOKE_CHAIN_ID_1);
 
         console.log("");
         console.log("Bonder withdrawing...");
@@ -70,8 +67,8 @@ contract RailsSimulation_Test is RailsFixture {
 
         withdrawAll();
 
-        printTokenBalances();
-        printGatewayTokenBalances();
+        printTokenBalances(SPOKE_CHAIN_ID_0, SPOKE_CHAIN_ID_1);
+        printGatewayTokenBalances(SPOKE_CHAIN_ID_0, SPOKE_CHAIN_ID_1);
 
         console.log("");
         console.log("Relaying final messages for hard confirmation...");
@@ -86,8 +83,8 @@ contract RailsSimulation_Test is RailsFixture {
 
         withdrawAll();
 
-        printTokenBalances();
-        printGatewayTokenBalances();
+        printTokenBalances(SPOKE_CHAIN_ID_0, SPOKE_CHAIN_ID_1);
+        printGatewayTokenBalances(SPOKE_CHAIN_ID_0, SPOKE_CHAIN_ID_1);
 
         uint256 _totalSent = totalSent[FROM_CHAIN_ID] + totalSent[TO_CHAIN_ID];
         uint256 _totalBonded = totalBonded[FROM_CHAIN_ID] + totalBonded[TO_CHAIN_ID];
@@ -110,9 +107,7 @@ contract RailsSimulation_Test is RailsFixture {
         RailsGateway fromRailsGateway = gatewayForChainId[FROM_CHAIN_ID];
         bytes32 pathId = fromRailsGateway.getPathId(FROM_CHAIN_ID, fromToken, TO_CHAIN_ID, toToken);
 
-        logWithdrawalData(FROM_CHAIN_ID, pathId);
         withdrawAll(FROM_CHAIN_ID, pathId, bonder1);
-        logWithdrawalData(TO_CHAIN_ID, pathId);
         withdrawAll(TO_CHAIN_ID, pathId, bonder1);
     }
 }

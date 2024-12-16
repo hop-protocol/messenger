@@ -58,8 +58,8 @@ contract HopHubSimulation_Test is RailsFixture {
         }
     
         console.log("");
-        printTokenBalances();
-        printGatewayTokenBalances();
+        printTokenBalances(SPOKE_CHAIN_ID_0, HUB_CHAIN_ID, SPOKE_CHAIN_ID_1);
+        printGatewayTokenBalances(SPOKE_CHAIN_ID_0, HUB_CHAIN_ID, SPOKE_CHAIN_ID_1);
 
         console.log("");
         console.log("Bonder withdrawing...");
@@ -67,8 +67,8 @@ contract HopHubSimulation_Test is RailsFixture {
 
         withdrawAll();
 
-        printTokenBalances();
-        printGatewayTokenBalances();
+        printTokenBalances(SPOKE_CHAIN_ID_0, HUB_CHAIN_ID, SPOKE_CHAIN_ID_1);
+        printGatewayTokenBalances(SPOKE_CHAIN_ID_0, HUB_CHAIN_ID, SPOKE_CHAIN_ID_1);
 
 
         console.log("");
@@ -84,8 +84,8 @@ contract HopHubSimulation_Test is RailsFixture {
 
         withdrawAll();
 
-        printTokenBalances();
-        printGatewayTokenBalances();
+        printTokenBalances(SPOKE_CHAIN_ID_0, HUB_CHAIN_ID, SPOKE_CHAIN_ID_1);
+        printGatewayTokenBalances(SPOKE_CHAIN_ID_0, HUB_CHAIN_ID, SPOKE_CHAIN_ID_1);
 
         uint256 _totalSent = totalSent[SPOKE_CHAIN_ID_0] + totalSent[SPOKE_CHAIN_ID_1];
         uint256 _totalBonded = totalBonded[SPOKE_CHAIN_ID_0] + totalBonded[SPOKE_CHAIN_ID_1];
