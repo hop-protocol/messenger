@@ -12,35 +12,35 @@ library StringLib {
     uint256 constant LABEL_SIZE = 28;
     uint256 constant CELL_SIZE = 40;
 
-    function toString(uint256 value) internal view returns (string memory) {
+    function toString(uint256 value) internal pure returns (string memory) {
         return Strings.toString(value);
     }
 
-    function concat(string memory a, string memory b) internal view returns (string memory) {
+    function concat(string memory a, string memory b) internal pure returns (string memory) {
         return string(abi.encodePacked(a, b));
     }
 
-    function padLeft(uint256 value,  uint256 totalLength) internal view returns (string memory) {
+    function padLeft(uint256 value,  uint256 totalLength) internal pure returns (string memory) {
         return value.toString().padLeft(totalLength);
     }
 
-    function padLeft(string memory original,  uint256 totalLength) internal view returns (string memory) {
+    function padLeft(string memory original,  uint256 totalLength) internal pure returns (string memory) {
         return original.padLeft(totalLength, " ");
     }
 
-    function padRight(uint256 value,  uint256 totalLength) internal view returns (string memory) {
+    function padRight(uint256 value,  uint256 totalLength) internal pure returns (string memory) {
         return value.toString().padRight(totalLength);
     }
 
-    function padRight(string memory original,  uint256 totalLength) internal view returns (string memory) {
+    function padRight(string memory original,  uint256 totalLength) internal pure returns (string memory) {
         return original.padRight(totalLength, " ");
     }
 
-    function padSides(string memory original,  uint256 totalLength) internal view returns (string memory) {
+    function padSides(string memory original,  uint256 totalLength) internal pure returns (string memory) {
         return original.padSides(totalLength, " ");
     }
 
-    function padLeft(string memory original,  uint256 totalLength, string memory char) internal view returns (string memory) {
+    function padLeft(string memory original,  uint256 totalLength, string memory char) internal pure returns (string memory) {
         uint256 originalLength = bytes(original).length;
         if (originalLength >= totalLength) {
             return original.truncate(totalLength);
@@ -51,7 +51,7 @@ library StringLib {
         return string.concat(whiteSpace, original);
     }
 
-    function padRight(string memory original,  uint256 totalLength, string memory char) internal view returns (string memory) {
+    function padRight(string memory original,  uint256 totalLength, string memory char) internal pure returns (string memory) {
         uint256 originalLength = bytes(original).length;
         if (originalLength >= totalLength) {
             return original.truncate(totalLength);
@@ -63,7 +63,7 @@ library StringLib {
     }
 
 
-    function padSides(string memory original,  uint256 totalLength, string memory char) internal view returns (string memory) {
+    function padSides(string memory original,  uint256 totalLength, string memory char) internal pure returns (string memory) {
         uint256 originalLength = bytes(original).length;
         if (originalLength >= totalLength) {
             return original.truncate(totalLength);
@@ -77,7 +77,7 @@ library StringLib {
         return string.concat(leftWhiteSpace, original, rightWhiteSpace);
     }
 
-    function getWhitespace(uint256 size, string memory char) internal view returns (string memory) {
+    function getWhitespace(uint256 size, string memory char) internal pure returns (string memory) {
         require(bytes(char).length == 1, "invalid char length");
         string memory whiteSpace = new string(size);
         for (uint256 i=0; i < size; i++) {
@@ -86,7 +86,7 @@ library StringLib {
         return whiteSpace;
     }
 
-    function truncate(string memory original, uint256 length) internal view returns (string memory) {
+    function truncate(string memory original, uint256 length) internal pure returns (string memory) {
         bytes memory stringBytes = bytes(original);
         
         if (length > stringBytes.length) {
@@ -101,7 +101,7 @@ library StringLib {
         return string(result);
     }
 
-    function format(uint256 value, uint8 decimals, uint256 significantDecimals) internal view returns (string memory) {
+    function format(uint256 value, uint8 decimals, uint256 significantDecimals) internal pure returns (string memory) {
         if (SKIP_FORMATTING) return value.toString();
 
         uint256 wholeNumber = value / (10 ** decimals);
@@ -118,12 +118,12 @@ library StringLib {
         return string.concat(wholeNumberStr, ".", remainderStr);
     }
 
-    function formatDollar(uint256 value, uint8 decimals, uint256 significantDecimals) internal view returns (string memory) {
+    function formatDollar(uint256 value, uint8 decimals, uint256 significantDecimals) internal pure returns (string memory) {
         if (SKIP_FORMATTING) return value.toString();
         return string.concat("$", format(value, decimals, significantDecimals));
     }
 
-    function addCommas(string memory numString) internal view returns (string memory) {
+    function addCommas(string memory numString) internal pure returns (string memory) {
         bytes memory bytesStr = bytes(numString);
         if (bytesStr.length <= 3) {
             return numString; 
@@ -147,7 +147,7 @@ library StringLib {
         return string(formattedBytes);
     }
 
-    function toRow(string[] memory cells) internal view returns (string memory) {
+    function toRow(string[] memory cells) internal pure returns (string memory) {
         string memory row = "";
         uint256 length = cells.length;
         for (uint256 i = 0; i < length; i++) {
@@ -160,29 +160,29 @@ library StringLib {
         return row;
     }
 
-    function toRow(string memory label) internal view returns (string memory) {
+    function toRow(string memory label) internal pure returns (string memory) {
         string memory row = label.padRight(LABEL_SIZE);
         return row;
     }
-    function toRow(string memory label, string memory cell0) internal view returns (string memory) {
+    function toRow(string memory label, string memory cell0) internal pure returns (string memory) {
         string memory row = label.padRight(LABEL_SIZE);
         row = string.concat(row, " ", cell0.padLeft(CELL_SIZE));
         return row;
     }
-    function toRow(string memory label, string memory cell0, string memory cell1) internal view returns (string memory) {
+    function toRow(string memory label, string memory cell0, string memory cell1) internal pure returns (string memory) {
         string memory row = label.padRight(LABEL_SIZE);
         row = string.concat(row, " ", cell0.padLeft(CELL_SIZE));
         row = string.concat(row, " ", cell1.padLeft(CELL_SIZE));
         return row;
     }
-    function toRow(string memory label, string memory cell0, string memory cell1, string memory cell2) internal view returns (string memory) {
+    function toRow(string memory label, string memory cell0, string memory cell1, string memory cell2) internal pure returns (string memory) {
         string memory row = label.padRight(LABEL_SIZE);
         row = string.concat(row, " ", cell0.padLeft(CELL_SIZE));
         row = string.concat(row, " ", cell1.padLeft(CELL_SIZE));
         row = string.concat(row, " ", cell2.padLeft(CELL_SIZE));
         return row;
     }
-    function toRow(string memory label, string memory cell0, string memory cell1, string memory cell2, string memory cell3) internal view returns (string memory) {
+    function toRow(string memory label, string memory cell0, string memory cell1, string memory cell2, string memory cell3) internal pure returns (string memory) {
         string memory row = label.padRight(LABEL_SIZE);
         row = string.concat(row, " ", cell0.padLeft(CELL_SIZE));
         row = string.concat(row, " ", cell1.padLeft(CELL_SIZE));
@@ -190,7 +190,7 @@ library StringLib {
         row = string.concat(row, " ", cell3.padLeft(CELL_SIZE));
         return row;
     }
-    function toRow(string memory label, string memory cell0, string memory cell1, string memory cell2, string memory cell3, string memory cell4) internal view returns (string memory) {
+    function toRow(string memory label, string memory cell0, string memory cell1, string memory cell2, string memory cell3, string memory cell4) internal pure returns (string memory) {
         string memory row = label.padRight(LABEL_SIZE);
         row = string.concat(row, " ", cell0.padLeft(CELL_SIZE));
         row = string.concat(row, " ", cell1.padLeft(CELL_SIZE));
@@ -200,29 +200,29 @@ library StringLib {
         return row;
     }
 
-    function toHeader(string memory label0) internal view returns (string memory) {
+    function toHeader(string memory label0) internal pure returns (string memory) {
         string memory row = label0.padRight(LABEL_SIZE);
         return row;
     }
-    function toHeader(string memory label0, string memory label1) internal view returns (string memory) {
+    function toHeader(string memory label0, string memory label1) internal pure returns (string memory) {
         string memory row = label0.padRight(LABEL_SIZE);
         row = string.concat(row, " ", label1.padSides(CELL_SIZE));
         return row;
     }
-    function toHeader(string memory label0, string memory label1, string memory label2) internal view returns (string memory) {
+    function toHeader(string memory label0, string memory label1, string memory label2) internal pure returns (string memory) {
         string memory row = label0.padRight(LABEL_SIZE);
         row = string.concat(row, " ", label1.padSides(CELL_SIZE));
         row = string.concat(row, " ", label2.padSides(CELL_SIZE));
         return row;
     }
-    function toHeader(string memory label0, string memory label1, string memory label2, string memory label3) internal view returns (string memory) {
+    function toHeader(string memory label0, string memory label1, string memory label2, string memory label3) internal pure returns (string memory) {
         string memory row = label0.padRight(LABEL_SIZE);
         row = string.concat(row, " ", label1.padSides(CELL_SIZE));
         row = string.concat(row, " ", label2.padSides(CELL_SIZE));
         row = string.concat(row, " ", label3.padSides(CELL_SIZE));
         return row;
     }
-    function toHeader(string memory label0, string memory label1, string memory label2, string memory label3, string memory label4) internal view returns (string memory) {
+    function toHeader(string memory label0, string memory label1, string memory label2, string memory label3, string memory label4) internal pure returns (string memory) {
         string memory row = label0.padRight(LABEL_SIZE);
         row = string.concat(row, " ", label1.padSides(CELL_SIZE));
         row = string.concat(row, " ", label2.padSides(CELL_SIZE));
@@ -230,7 +230,7 @@ library StringLib {
         row = string.concat(row, " ", label4.padSides(CELL_SIZE));
         return row;
     }
-    function toHeader(string memory label0, string memory label1, string memory label2, string memory label3, string memory label4, string memory label5) internal view returns (string memory) {
+    function toHeader(string memory label0, string memory label1, string memory label2, string memory label3, string memory label4, string memory label5) internal pure returns (string memory) {
         string memory row = label0.padRight(LABEL_SIZE);
         row = string.concat(row, " ", label1.padSides(CELL_SIZE));
         row = string.concat(row, " ", label2.padSides(CELL_SIZE));

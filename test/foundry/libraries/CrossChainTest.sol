@@ -48,7 +48,7 @@ contract CrossChainTest is Test {
 
         // Hacky way to burn forkId 0
         Chain memory chain = getChain("sepolia");
-        uint256 forkId = vm.createFork(chain.rpcUrl);
+        vm.createFork(chain.rpcUrl);
     }
 
     modifier broadcastOn(uint256 chainId) {

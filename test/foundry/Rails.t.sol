@@ -43,17 +43,17 @@ contract RailsGateway_Test is MessengerFixture {
     // mapping(address => string) public nameForAddress;
 
     // address public constant deployer = address(1);
-    // address public constant user1 = address(2);
+    // address public constant USER1 = address(2);
     // address public constant user2 = address(3);
-    // address public constant bonder1 = address(4);
+    // address public constant BONDER1 = address(4);
 
     // RailsGatewayEvents gatewayEvents;
 
     // constructor() {
     //     nameForAddress[deployer] = "deployer";
-    //     nameForAddress[user1] = "user1";
+    //     nameForAddress[USER1] = "USER1";
     //     nameForAddress[user2] = "user2";
-    //     nameForAddress[bonder1] = "bonder1";
+    //     nameForAddress[BONDER1] = "BONDER1";
     // }
 
     // function printBalance(address account) internal {
@@ -73,9 +73,9 @@ contract RailsGateway_Test is MessengerFixture {
 
     // function setUp() public crossChainBroadcast {
     //     vm.deal(deployer, 1e18);
-    //     vm.deal(user1, 1e18);
+    //     vm.deal(USER1, 1e18);
     //     vm.deal(user2, 1e18);
-    //     vm.deal(bonder1, 1e18);
+    //     vm.deal(BONDER1, 1e18);
 
     //     chainIds.push(L1_CHAIN_ID);
     //     chainIds.push(SPOKE_CHAIN_ID_0);
@@ -90,9 +90,9 @@ contract RailsGateway_Test is MessengerFixture {
     //         on(chainId);
 
     //         IERC20 token = new MockToken();
-    //         MockToken(address(token)).deal(address(user1), 1000 * 1e18);
+    //         MockToken(address(token)).deal(address(USER1), 1000 * 1e18);
     //         MockToken(address(token)).deal(address(user2), 1000 * 1e18);
-    //         MockToken(address(token)).deal(address(bonder1), 1000 * 1e18);
+    //         MockToken(address(token)).deal(address(BONDER1), 1000 * 1e18);
     //         tokenForChainId[chainId] = token;
     //     }
 
@@ -140,12 +140,12 @@ contract RailsGateway_Test is MessengerFixture {
     //     console.log("");
 
     //     on(fromChainId);
-    //     printBalance(user1);
-    //     printBalance(bonder1);
+    //     printBalance(USER1);
+    //     printBalance(BONDER1);
     //     printBalance(address(fromRailsGateway));
     //     on(toChainId);
-    //     printBalance(user1);
-    //     printBalance(bonder1);
+    //     printBalance(USER1);
+    //     printBalance(BONDER1);
     //     printBalance(address(toRailsGateway));
 
     //     console.log("");
@@ -156,17 +156,17 @@ contract RailsGateway_Test is MessengerFixture {
 
     //     // send transfer
     //     TransferSentEvent storage transferSentEvent = send(
-    //         user1,
+    //         USER1,
     //         fromChainId,
     //         fromToken,
     //         toChainId,
     //         toToken,
-    //         user1,
+    //         USER1,
     //         amount,
     //         minAmountOut
     //     );
 
-    //     // printBalance(fromChainId, user1);
+    //     // printBalance(fromChainId, USER1);
     //     printBalance(fromChainId, address(fromRailsGateway));
 
     //     console.log("");
@@ -176,10 +176,10 @@ contract RailsGateway_Test is MessengerFixture {
     //     console.log("");
 
     //     // bond transfer
-    //     TransferBondedEvent storage transferBondedEvent = bond(bonder1, transferSentEvent);
+    //     TransferBondedEvent storage transferBondedEvent = bond(BONDER1, transferSentEvent);
 
-    //     printBalance(toChainId, user1);
-    //     printBalance(toChainId, bonder1);
+    //     printBalance(toChainId, USER1);
+    //     printBalance(toChainId, BONDER1);
 
     //     console.log("");
     //     console.log("====================================");
@@ -211,13 +211,13 @@ contract RailsGateway_Test is MessengerFixture {
 
     //     withdraw(
     //         toChainId,
-    //         bonder1,
+    //         BONDER1,
     //         amount,
     //         transferBondedEvent.pathId,
     //         transferBondedEvent.timestamp
     //     );
 
-    //     printBalance(toChainId, bonder1);
+    //     printBalance(toChainId, BONDER1);
     //     printBalance(toChainId, address(toRailsGateway));
     // }
 
@@ -332,7 +332,7 @@ contract RailsGateway_Test is MessengerFixture {
     //     vm.startPrank(bonder);
     //     RailsGateway gateway = gatewayForChainId[chainId];
 
-    //     gateway.withdrawAll(pathId, time);
+    //     gateway.withdraw(pathId, time);
     //     vm.stopPrank();
     // }
 }

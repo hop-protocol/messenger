@@ -104,7 +104,6 @@ contract HopHubSimulation_Test is RailsFixture {
 
     function withdrawAll() internal crossChainBroadcast {
         IERC20 hubToken = tokenForChainId[hubChainId];
-        RailsGateway hubGateway = gatewayForChainId[hubChainId];
         for (uint256 i = 0; i < chainIds.length; i++) {
             uint256 spokeChainId = chainIds[i];
             if (spokeChainId == hubChainId) continue;
@@ -117,9 +116,9 @@ contract HopHubSimulation_Test is RailsFixture {
 
             console.log("pathId %s %s %x", hubChainId, spokeChainId, uint256(pathId));
             console.log("withdraw hub", hubChainId);
-            withdrawAll(hubChainId, pathId, bonder1);
+            withdraw(hubChainId, pathId, BONDER1);
             console.log("withdraw spoke", spokeChainId);
-            withdrawAll(spokeChainId, pathId, bonder1);
+            withdraw(spokeChainId, pathId, BONDER1);
         }
     }
 
@@ -132,35 +131,35 @@ contract HopHubSimulation_Test is RailsFixture {
             TransferSentEvent storage transferSentEvent0,
             MessageSentEvent storage messageSentEvent
         ) = send(
-            user1,
+            USER1,
             simTransfer.fromChainId,
             fromToken,
             hubChainId,
             hubToken,
             simTransfer.toChainId,
             toToken,
-            user1,
+            USER1,
             simTransfer.amount
         );
         transferSentEvent0.printEvent();
 
         on(simTransfer.toChainId);
-        uint256 beforeBalance = toToken.balanceOf(user1);
+        uint256 beforeBalance = toToken.balanceOf(USER1);
         {
             (
                 TransferBondedEvent storage transferBondedEvent0,
                 TransferSentEvent storage transferSentEvent1
-            ) = bond(bonder1, transferSentEvent0);
+            ) = bond(BONDER1, transferSentEvent0);
             transferBondedEvent0.printEvent();
 
             (
                 TransferBondedEvent storage transferBondedEvent1,
-            ) = bond(bonder1, transferSentEvent1);
+            ) = bond(BONDER1, transferSentEvent1);
             transferBondedEvent1.printEvent();
         }
 
         {
-            uint256 afterBalance = toToken.balanceOf(user1);
+            uint256 afterBalance = toToken.balanceOf(USER1);
             uint256 received = afterBalance - beforeBalance;
             uint256 rate = received * ONE_TKN / simTransfer.amount;
             console.log("rate", rate);

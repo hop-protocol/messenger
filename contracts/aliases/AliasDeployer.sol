@@ -64,15 +64,15 @@ contract AliasDeployer is OverridableChainId, Ownable, ICrossChainFees {
             if (chainId != thisChainId) {
                 // We know it's a connector if the chain id is not this chain id.
                 address connector = aliasFactoryForChainId[chainId];
-                uint256[] memory chainIds = new uint256[](1);
-                chainIds[0] = chainId;
-                fee += ICrossChainFees(connector).getFee(chainIds);
+                uint256[] memory chainIdArray = new uint256[](1);
+                chainIdArray[0] = chainId;
+                fee += ICrossChainFees(connector).getFee(chainIdArray);
             }
         }
         return fee;
     }
 
-    function aliasFactory() public view returns (address) {
+    function getAliasFactory() public view returns (address) {
         return aliasFactoryForChainId[getChainId()];
     }
 
@@ -85,10 +85,10 @@ contract AliasDeployer is OverridableChainId, Ownable, ICrossChainFees {
         view
         returns (address)
     {
-        return AliasFactory(aliasFactory()).calculateAliasAddress(sourceChainId, sourceAddress, aliasDispatcher);
+        return AliasFactory(getAliasFactory()).calculateAliasAddress(sourceChainId, sourceAddress, aliasDispatcher);
     }
 
     function calculateAliasDispatcherAddress(address sourceAddress) public view returns (address) {
-        return AliasFactory(aliasFactory()).calculateAliasDispatcherAddress(sourceAddress);
+        return AliasFactory(getAliasFactory()).calculateAliasDispatcherAddress(sourceAddress);
     }
 }

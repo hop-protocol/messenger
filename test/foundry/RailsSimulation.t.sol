@@ -107,7 +107,7 @@ contract RailsSimulation_Test is RailsFixture {
         RailsGateway fromRailsGateway = gatewayForChainId[FROM_CHAIN_ID];
         bytes32 pathId = fromRailsGateway.getPathId(FROM_CHAIN_ID, fromToken, TO_CHAIN_ID, toToken);
 
-        withdrawAll(FROM_CHAIN_ID, pathId, bonder1);
-        withdrawAll(TO_CHAIN_ID, pathId, bonder1);
+        withdraw(FROM_CHAIN_ID, pathId, BONDER1);
+        withdraw(TO_CHAIN_ID, pathId, BONDER1);
     }
 }

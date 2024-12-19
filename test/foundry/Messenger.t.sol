@@ -30,18 +30,18 @@ contract Messenger_Test is MessengerFixture {
     mapping(address => string) public nameForAddress;
 
     address public constant deployer = address(1);
-    address public constant user1 = address(2);
+    address public constant USER1 = address(2);
     address public constant user2 = address(3);
-    address public constant bonder1 = address(4);
+    address public constant BONDER1 = address(4);
 
     constructor() {
         nameForAddress[deployer] = "deployer";
-        nameForAddress[user1] = "user1";
+        nameForAddress[USER1] = "USER1";
     }
 
     function setUp() public crossChainBroadcast {
         vm.deal(deployer, 1e18);
-        vm.deal(user1, 1e18);
+        vm.deal(USER1, 1e18);
 
         chainIds.push(L1_CHAIN_ID);
         chainIds.push(SPOKE_CHAIN_ID_0);
@@ -63,7 +63,7 @@ contract Messenger_Test is MessengerFixture {
         dispatcher.dispatchMessage{value: fee}(SPOKE_CHAIN_ID_0, msg.sender, abi.encodeWithSignature("hello()"));
         Vm.Log[] memory logs = vm.getRecordedLogs();
 
-       (uint256 startIndex, uint256 numEvents) = messengerEvents.getMessageSentEvents(logs);
+       (uint256 startIndex,) = messengerEvents.getMessageSentEvents(logs);
         MessageSentEvent storage sendMessageEvent = messengerEvents.messageSentEvents[startIndex];
 
         printMessageSentEvent(sendMessageEvent);

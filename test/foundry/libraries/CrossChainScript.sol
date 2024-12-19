@@ -18,7 +18,6 @@ contract CrossChainScript is CrossChainTest {
     }
 
     function stopBroadcast() internal override {
-        uint256 privateKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
         vm.stopBroadcast();
     }
 }
