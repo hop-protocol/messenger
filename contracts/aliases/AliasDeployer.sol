@@ -45,9 +45,7 @@ contract AliasDeployer is OverridableChainId, Ownable, ICrossChainFees {
         IAliasFactory factoryOrConnector = IAliasFactory(factoryOrConnectorAddress);
         uint256 messageFee = 0;
         if (chainId != getChainId()) {
-            uint256[] memory chainIds = new uint256[](1);
-            chainIds[0] = chainId;
-            messageFee = ICrossChainFees(factoryOrConnectorAddress).getFee(chainIds);
+            messageFee = ICrossChainFees(factoryOrConnectorAddress).getFee(chainId);
         }
         factoryOrConnector.deployAlias{value: messageFee}(sourceChainId, sourceAddress, aliasDispatcher);
     }
@@ -56,20 +54,13 @@ contract AliasDeployer is OverridableChainId, Ownable, ICrossChainFees {
         aliasFactoryForChainId[chainId] = factory;
     }
 
-    function getFee(uint256[] calldata chainIds) external override view returns (uint256) {
+    function getFee(uint256 chainId) external override view returns (uint256 fee) {
         uint256 thisChainId = getChainId();
-        uint256 fee;
-        for(uint256 i = 0; i < chainIds.length; i++) {
-            uint256 chainId = chainIds[i];
-            if (chainId != thisChainId) {
-                // We know it's a connector if the chain id is not this chain id.
-                address connector = aliasFactoryForChainId[chainId];
-                uint256[] memory chainIdArray = new uint256[](1);
-                chainIdArray[0] = chainId;
-                fee += ICrossChainFees(connector).getFee(chainIdArray);
-            }
+        if (chainId == thisChainId) {
+            return 0;
         }
-        return fee;
+        address connector = aliasFactoryForChainId[chainId];
+        return ICrossChainFees(connector).getFee(chainId);
     }
 
     function getAliasFactory() public view returns (address) {

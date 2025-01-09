@@ -173,15 +173,9 @@ contract Dispatcher is Ownable, EIP712, OverridableChainId, ICrossChainFees {
         return keccak256(abi.encode(fromChainId, toChainId, bundleNonce, bundleRoot));
     }
 
-    function getFee(uint256[] calldata chainIds) external override view returns (uint256) {
+    function getFee(uint256 chainId) external override view returns (uint256 fee) {
         uint256 thisChainId = getChainId();
-        uint256 fee = 0;
-        for (uint256 i = 0; i < chainIds.length; i++) {
-            uint256 chainId = chainIds[i];
-            if (chainId != thisChainId) {
-                fee += messageFeeForChainId[chainId];
-            }
-        }
-        return fee;
+        require(chainId != thisChainId, "Dispatcher: invalid chain id");
+        return messageFeeForChainId[chainId];
     }
 }

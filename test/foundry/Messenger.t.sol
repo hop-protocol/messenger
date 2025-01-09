@@ -56,9 +56,7 @@ contract Messenger_Test is MessengerFixture {
         on(L1_CHAIN_ID);
         IMessageDispatcher dispatcher = IMessageDispatcher(address(dispatcherForChainId[L1_CHAIN_ID]));
 
-        uint256[] memory chains = new uint256[](1);
-        chains[0] = SPOKE_CHAIN_ID_0;
-        uint256 fee = ICrossChainFees(address(dispatcher)).getFee(chains);
+        uint256 fee = ICrossChainFees(address(dispatcher)).getFee(SPOKE_CHAIN_ID_0);
         vm.recordLogs();
         dispatcher.dispatchMessage{value: fee}(SPOKE_CHAIN_ID_0, msg.sender, abi.encodeWithSignature("hello()"));
         Vm.Log[] memory logs = vm.getRecordedLogs();

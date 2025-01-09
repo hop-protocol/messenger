@@ -40,8 +40,7 @@ contract ERC5164Connector is Connector, MessageReceiver, ICrossChainFees {
         if (fromChainId != counterpartChainId) revert InvalidFromChainId(fromChainId);
     }
 
-    function getFee(uint256[] calldata chainIds) external override view returns (uint256) {
-        require(chainIds.length == 1, "ERC5164Connector: Invalid chainIds length");
-        return ICrossChainFees(messageDispatcher).getFee(chainIds);
+    function getFee(uint256 chainId) external override view returns (uint256) {
+        return ICrossChainFees(messageDispatcher).getFee(chainId);
     }
 }

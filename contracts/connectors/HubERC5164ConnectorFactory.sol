@@ -67,8 +67,7 @@ contract HubERC5164ConnectorFactory is ERC5164ConnectorFactory, ICrossChainFees 
         }
     }
 
-    function getFee(uint256[] calldata chainIds) external override view returns (uint256) {
-        require(chainIds.length == 2, "HubERC5164ConnectorFactory: Invalid chainIds length");
-        return ICrossChainFees(messageDispatcher).getFee(chainIds);
+    function getFee(uint256 chainId) external override view returns (uint256) {
+        return ICrossChainFees(messageDispatcher).getFee(chainId);
     }
 }

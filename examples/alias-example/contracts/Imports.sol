@@ -5,7 +5,7 @@ import "@hop-protocol/aliases/AliasDeployer.sol";
 import "@hop-protocol/messenger/messenger/Dispatcher.sol";
 
 contract CrossChainFees {
-    function getFee(uint256[] calldata chainIds) external view returns (uint256) {
+    function getFee(uint256 chainId) external view returns (uint256) {
         return 0;
     }
 }
