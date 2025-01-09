@@ -105,7 +105,7 @@ contract RailsSimulation_Test is RailsFixture {
         IERC20 fromToken = tokenForChainId[FROM_CHAIN_ID];
         IERC20 toToken = tokenForChainId[TO_CHAIN_ID];
         RailsGateway fromRailsGateway = gatewayForChainId[FROM_CHAIN_ID];
-        bytes32 pathId = fromRailsGateway.getPathId(FROM_CHAIN_ID, fromToken, TO_CHAIN_ID, toToken);
+        bytes32 pathId = fromRailsGateway.getPathId(FROM_CHAIN_ID, fromToken, TO_CHAIN_ID, toToken, initialReserve);
 
         withdraw(FROM_CHAIN_ID, pathId, BONDER1);
         withdraw(TO_CHAIN_ID, pathId, BONDER1);

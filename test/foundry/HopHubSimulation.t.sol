@@ -112,7 +112,7 @@ contract HopHubSimulation_Test is RailsFixture {
             IERC20 spokeToken = tokenForChainId[spokeChainId];
             RailsGateway spokeGateway = gatewayForChainId[spokeChainId];
             on(spokeChainId);
-            bytes32 pathId = spokeGateway.getPathId(hubChainId, hubToken, spokeChainId, spokeToken);
+            bytes32 pathId = spokeGateway.getPathId(hubChainId, hubToken, spokeChainId, spokeToken, initialReserve);
 
             console.log("pathId %s %s %x", hubChainId, spokeChainId, uint256(pathId));
             console.log("withdraw hub", hubChainId);
