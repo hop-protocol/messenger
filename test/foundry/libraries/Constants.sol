@@ -22,6 +22,8 @@ uint256 constant MAX_BUNDLE_MESSAGES = 1024;
 uint256 constant MESSAGE_FEE = 7_000_000_000_000;
 uint256 constant TRANSPORT_FEE = 7_000_000_000_000_000; // 0.007
 uint256 constant RELAY_WINDOW = 12 * 3600; // 12 hours
+uint256 constant BONDER_FEE_BPS = 0;
+uint256 constant DEFAULT_TOKEN_FEE = 1 * 1e14; // 1 bps
 
 // Message
 uint256 constant DEFAULT_RESULT = 1234;
