@@ -24,6 +24,8 @@ uint256 constant TRANSPORT_FEE = 7_000_000_000_000_000; // 0.007
 uint256 constant RELAY_WINDOW = 12 * 3600; // 12 hours
 uint256 constant BONDER_FEE_BPS = 0;
 uint256 constant DEFAULT_TOKEN_FEE = 1 * 1e14; // 1 bps
+uint256 constant SEND_FEE_GAS = 140_000;
+uint256 constant UPDATE_FEE_GAS = 70_000;
 
 // Message
 uint256 constant DEFAULT_RESULT = 1234;
