@@ -64,9 +64,12 @@ contract CrossChainTest is Test {
     }
 
     modifier crossChainBroadcast() {
+        uint256 _cachedChainId = currentChainId;
         crossChainBroadcastInProgress = true;
         _;
-        if (currentChainId != 0) {
+        if (_cachedChainId != 0) {
+            _on(_cachedChainId);
+        } else if (currentChainId != 0) {
             stopBroadcast();
             currentChainId = 0;
         }
