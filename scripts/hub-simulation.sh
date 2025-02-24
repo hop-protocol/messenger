@@ -1,1 +1,0 @@
-forge test --match-test test_runHopHubSimulation -vv
