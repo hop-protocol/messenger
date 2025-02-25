@@ -17,7 +17,8 @@
     "test": "npm run test-send && npm run test-push-claim && npm run test-bond && npm run test-withdraw && npm run test-fees",
     "test-simulation-single-path": "forge test --match-test test_runSimulationSinglePath -vv",
     "test-simulation-multi-path": "forge test --match-test test_runSimulationMultiPath -vv",
-    "deploy": "forge script scripts/transporter/Deploy.t.sol --broadcast",
+    "deploy": "forge script test/foundry/Deploy.s.sol --slow --broadcast",
+    "deploy-dry-run": "forge script test/foundry/Deploy.s.sol",
     "lint": "eslint .",
     "prettier": "prettier '**/*.{json,sol,md}' --check"
   },
