@@ -36,18 +36,18 @@ RPC_ENDPOINT_HOP_SEPOLIA="http://127.0.0.1:8548"
 ### Run Unit Tests
 
 ```
-bash scripts/unit-tests.sh
+npm run test
 ```
 
 ### Run Single-Path Simulation
 
 ```
-bash scripts/single-path-simulation.sh
+npm run test-single-path-simulation
 ```
 
 ### Run Hub Simulation
 
 ```
-bash scripts/hub-simulation.sh
+npm run test-multi-path-simulation
 ```
 
