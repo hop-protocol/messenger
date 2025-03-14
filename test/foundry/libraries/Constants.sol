@@ -37,3 +37,4 @@ uint256 constant DEFAULT_TO_CHAIN_ID = L1_CHAIN_ID;
 uint256 constant ONE_WEEK = 604800;
 uint256 constant BPS = 10_000;
 uint256 constant ONE_TKN = 1e18;
+uint256 constant SLOT_SIZE = 1 hours;
