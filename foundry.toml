@@ -4,7 +4,7 @@ remappings = [
     '@openzeppelin/=node_modules/@openzeppelin/',
 ]
 optimizer = true
-optimizer_runs = 1
+optimizer_runs = 10
 solc_version = '0.8.21'
 libs = ['node_modules', 'lib']
 
