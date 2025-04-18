@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.2;
 
-import "../ERC5164/IMessageDispatcher.sol";
+import "@hop-protocol/erc5164/contracts/IMessageDispatcher.sol";
 import "./Alias.sol";
 
 contract AliasDispatcher is IMessageDispatcher {

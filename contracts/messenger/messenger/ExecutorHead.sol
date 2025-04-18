@@ -2,7 +2,7 @@
 pragma solidity ^0.8.2;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "../../ERC5164/MessageExecutor.sol";
+import "@hop-protocol/erc5164/contracts/MessageExecutor.sol";
 
 contract ExecutorHead is MessageExecutor, Ownable {
     address public executor;

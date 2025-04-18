@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.2;
 
-import "../ERC5164/IMessageExecutor.sol";
-import "../ERC5164/MessageReceiver.sol";
+import "@hop-protocol/erc5164/contracts/IMessageExecutor.sol";
+import "@hop-protocol/erc5164/contracts/MessageReceiver.sol";
 import "../shared-solidity/ExecutorLib.sol";
 import "../shared-solidity/Initializable.sol";
 

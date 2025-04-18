@@ -33,21 +33,8 @@ RPC_ENDPOINT_BASE_SEPOLIA="http://127.0.0.1:8547"
 RPC_ENDPOINT_HOP_SEPOLIA="http://127.0.0.1:8548"
 ```
 
-### Run Unit Tests
+### Run Tests
 
 ```
 npm run test
 ```
-
-### Run Single-Path Simulation
-
-```
-npm run test-single-path-simulation
-```
-
-### Run Hub Simulation
-
-```
-npm run test-multi-path-simulation
-```
-

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.2;
 
-import "@hop-protocol/ERC5164/MessageReceiver.sol";
-import "@hop-protocol/ERC5164/IMessageDispatcher.sol";
+import "@hop-protocol/erc5164/MessageReceiver.sol";
+import "@hop-protocol/erc5164/IMessageDispatcher.sol";
 
 /// @dev An example contract demonstrating cross-chain messaging with a ERC5164 messenger such as the Hop Core Messenger.
 contract Greeter is MessageReceiver {

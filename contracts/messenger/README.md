@@ -44,7 +44,7 @@ IMessageDispatcher(dispatcher).dispatchMessage(toChainId, to, data);
 
 ### Receive a message
 
-When receiving a message, inherit from [`MessageReceiver`](https://github.com/hop-protocol/contracts-v2/blob/master/packages/messenger/contracts/erc5164/MessageReceiver.sol) to access the `EIP-5164` validation data -- `messageId`, `from` address, and `fromChainId`.
+When receiving a message, inherit from [`MessageReceiver`](https://github.com/hop-protocol/contracts-v2/blob/master/packages/messenger/contracts/ERC5164/MessageReceiver.sol) to access the `EIP-5164` validation data -- `messageId`, `from` address, and `fromChainId`.
 
 ```solidity
 contract MyContract is MessageReceiver {

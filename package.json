@@ -8,23 +8,13 @@
   "scripts": {
     "compile": "forge build",
     "hardhat-compile": "npx hardhat compile",
-    "compile-all": "npm run compile && npm run hardhat-compile",
-    "test-send": "forge test --match-test test_Send -vv",
-    "test-push-claim": "forge test --match-test test_PushClaim -vv",
-    "test-bond": "forge test --match-test test_Bond -vv",
-    "test-withdraw": "forge test --match-test test_Withdraw -vv",
-    "test-fees": "forge test --match-test test_Fees -vv",
-    "test": "npm run test-send && npm run test-push-claim && npm run test-bond && npm run test-withdraw && npm run test-fees",
-    "test-simulation-single-path": "forge test --match-test test_runSimulationSinglePath -vv",
-    "test-simulation-multi-path": "forge test --match-test test_runSimulationMultiPath -vv",
-    "coverage": "forge coverage",
-    "deploy": "forge script test/foundry/Deploy.s.sol --slow --broadcast",
-    "deploy-dry-run": "forge script test/foundry/Deploy.s.sol",
+    "test": "npx hardhat test",
     "lint": "eslint .",
     "prettier": "prettier '**/*.{json,sol,md}' --check"
   },
   "devDependencies": {
     "@eth-optimism/sdk": "^1.7.0",
+    "@nomicfoundation/hardhat-foundry": "^1.0.3",
     "@nomiclabs/hardhat-ethers": "^2.2.1",
     "@nomiclabs/hardhat-etherscan": "^3.1.1",
     "@nomiclabs/hardhat-waffle": "^2.0.3",
@@ -45,9 +35,9 @@
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-prettier": "^3.4.1",
     "eslint-plugin-promise": "^5.2.0",
-    "ethereum-waffle": "^3.4.4",
     "ethers": "^5.6.8",
     "hardhat": "^2.9.9",
+    "hardhat-preprocessor": "^0.1.5",
     "merkletreejs": "^0.2.32",
     "prettier": "^2.7.1",
     "prettier-plugin-solidity": "^1.0.0-beta.13",
@@ -59,8 +49,6 @@
     "typescript": "^4.7.3"
   },
   "dependencies": {
-    "@nomicfoundation/hardhat-foundry": "^1.0.3",
-    "@openzeppelin/contracts": "^4.7.3",
-    "hardhat-preprocessor": "^0.1.5"
+    "@openzeppelin/contracts": "^4.7.3"
   }
 }
