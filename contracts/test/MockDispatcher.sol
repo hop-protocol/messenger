@@ -1,17 +1,12 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.2;
 
-import "../messenger/ExecutorManager.sol";
+import "../Dispatcher.sol";
 
-contract MockExecutorManager is ExecutorManager {
+contract MockDispatcher is Dispatcher {
     uint256 public mockChainId;
-
-    constructor(
-        address defaultTransporter,
-        uint256 _mockChainId
-    ) ExecutorManager (
-        defaultTransporter
-    ) {
+    
+    constructor(address transporter, uint256 _mockChainId) Dispatcher (transporter) {
         mockChainId = _mockChainId;
     }
 

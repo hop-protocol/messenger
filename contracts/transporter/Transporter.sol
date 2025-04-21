@@ -2,7 +2,7 @@
 pragma solidity ^0.8.2;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "../messenger/interfaces/ITransportLayer.sol";
+import "../interfaces/ITransportLayer.sol";
 import "./libraries/Error.sol";
 
 abstract contract Transporter is Ownable, ITransportLayer {

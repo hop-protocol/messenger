@@ -5,8 +5,8 @@ import {console} from "forge-std/console.sol";
 import {Script} from "forge-std/Script.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import {Dispatcher, Route} from "../../../contracts/messenger/messenger/Dispatcher.sol";
-import {ExecutorManager} from "../../../contracts/messenger/messenger/ExecutorManager.sol";
+import {Dispatcher, Route} from "../../../contracts/Dispatcher.sol";
+import {ExecutorManager} from "../../../contracts/ExecutorManager.sol";
 import {MockExecutor} from "../MockExecutor.sol";
 
 import {

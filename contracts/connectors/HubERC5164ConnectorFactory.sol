@@ -3,7 +3,7 @@
 pragma solidity ^0.8.2;
 
 import "@hop-protocol/erc5164/contracts/IMessageDispatcher.sol";
-import "../messenger/interfaces/ICrossChainFees.sol";
+import "../interfaces/ICrossChainFees.sol";
 import "./ERC5164ConnectorFactory.sol";
 
 contract HubERC5164ConnectorFactory is ERC5164ConnectorFactory, ICrossChainFees {

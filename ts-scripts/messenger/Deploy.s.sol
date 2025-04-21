@@ -4,8 +4,8 @@ pragma solidity ^0.8.19;
 import {console} from "forge-std/console.sol";
 import {Script} from "forge-std/Script.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import {Dispatcher, Route} from "../../contracts/messenger/Dispatcher.sol";
-import {ExecutorManager} from "../../contracts/messenger/ExecutorManager.sol";
+import {Dispatcher, Route} from "../../contracts/Dispatcher.sol";
+import {ExecutorManager} from "../../contracts/ExecutorManager.sol";
 
 import {
     HUB_CHAIN_ID,

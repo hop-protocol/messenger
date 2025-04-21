@@ -2,13 +2,13 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "../../shared-solidity/OverridableChainId.sol";
+import "./shared-solidity/OverridableChainId.sol";
 import "./ExecutorHead.sol";
-import "../interfaces/ITransportLayer.sol";
-import "../libraries/Error.sol";
-import "../libraries/Bitmap.sol";
-import "../libraries/MerkleTreeLib.sol";
-import "../libraries/MessengerLib.sol";
+import "./interfaces/ITransportLayer.sol";
+import "./libraries/Error.sol";
+import "./libraries/Bitmap.sol";
+import "./libraries/MerkleTreeLib.sol";
+import "./libraries/MessengerLib.sol";
 
 interface IHopMessageReceiver {
     // Optional functions for custom validation logic

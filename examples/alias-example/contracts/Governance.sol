@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.2;
 
-import "@hop-protocol/aliases/AliasDispatcher.sol";
+import "@hop-protocol/messenger/contracts/aliases/AliasDispatcher.sol";
 
 contract Governance {
     address public aliasDisptacher;

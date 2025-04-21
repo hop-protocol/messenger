@@ -1,4 +1,20 @@
 hardhat.config.ts
 scripts
 test
-old_packages
+
+node_modules
+.env
+coverage
+coverage.json
+typechain
+broadcast
+bin
+
+#Hardhat files
+cache
+cache_hardhat
+artifacts
+forge-artifacts
+
+notes
+deployment-artifacts

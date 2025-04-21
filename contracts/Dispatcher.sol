@@ -3,14 +3,12 @@ pragma solidity ^0.8.2;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
-import "../../shared-solidity/OverridableChainId.sol";
-import "../libraries/Error.sol";
-import "../libraries/MessengerLib.sol";
-import "../libraries/MerkleTreeLib.sol";
-import "../interfaces/ITransportLayer.sol";
-import "../interfaces/ICrossChainFees.sol";
-
-import {console} from "forge-std/console.sol";
+import "./shared-solidity/OverridableChainId.sol";
+import "./libraries/Error.sol";
+import "./libraries/MessengerLib.sol";
+import "./libraries/MerkleTreeLib.sol";
+import "./interfaces/ITransportLayer.sol";
+import "./interfaces/ICrossChainFees.sol";
 
 struct Route {
     uint256 chainId;

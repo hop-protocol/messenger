@@ -1,13 +1,12 @@
 {
-  "name": "@hop-protocol/contracts-v2",
+  "name": "@hop-protocol/messenger",
   "private": true,
   "version": "1.0.0",
-  "description": "Hop Contracts V2",
+  "description": "Hop Messenger",
   "author": "Hop Team (@HopProtocol)",
   "license": "MIT",
   "scripts": {
-    "compile": "forge build",
-    "hardhat-compile": "npx hardhat compile",
+    "compile": "npx hardhat compile",
     "test": "npx hardhat test",
     "lint": "eslint .",
     "prettier": "prettier '**/*.{json,sol,md}' --check"
@@ -49,6 +48,10 @@
     "typescript": "^4.7.3"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^4.7.3"
-  }
+    "@openzeppelin/contracts": "^4.7.3",
+    "@hop-protocol/erc5164": "^1.0.0"
+  },
+  "files": [
+    "contracts/"
+  ]
 }
