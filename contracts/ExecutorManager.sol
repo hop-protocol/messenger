@@ -36,12 +36,18 @@ contract ExecutorManager is Ownable, OverridableChainId {
     address public verificationManager;
     mapping(bytes32 => Bitmap) private spentMessagesForBundleNonce;
 
+    event MessageExecuted(
+        bytes32 indexed messageId,
+        uint256 indexed fromChainId
+    );
+
     event BundleProven(
         uint256 indexed fromChainId,
         bytes32 indexed bundleNonce,
         bytes32 bundleRoot,
         bytes32 bundleId
     );
+
     event VerifierRegistered(address indexed receiver, address indexed transporter);
 
     constructor(address _defaultTransporter) {
@@ -86,7 +92,8 @@ contract ExecutorManager is Ownable, OverridableChainId {
         Bitmap storage spentMessages = spentMessagesForBundleNonce[bundleProof.bundleNonce];
         spentMessages.switchTrue(bundleProof.treeIndex); // Reverts if already true
 
-        // ToDo: Log BunldeId? treeIndex?
+        emit MessageExecuted(messageId, fromChainId);
+
         ExecutorHead(head).executeMessage(messageId, fromChainId, from, to, data);
     }
 
@@ -129,6 +136,7 @@ contract ExecutorManager is Ownable, OverridableChainId {
         defaultTransporter = verifier;
     }
 
+    // ToDo: This is should be removed.
     function registerMessageReceiver(address receiver) external {
         IHopMessageReceiver messageReceiver = IHopMessageReceiver(receiver);
         address transporter = messageReceiver.hop_transporter();
