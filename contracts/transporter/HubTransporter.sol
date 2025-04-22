@@ -4,6 +4,7 @@ pragma solidity ^0.8.2;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "./Transporter.sol";
+import "../interfaces/ICrossChainFees.sol";
 
 interface ISpokeTransporter {
     function receiveCommitment(uint256 fromChainId, bytes32 commitment) external payable;
@@ -49,16 +50,25 @@ contract HubTransporter is Transporter {
         maxFeeBPS = _maxFeeBPS;
     }
 
-    receive() external payable {}
-
-    function dispatchCommitment(uint256 toChainId, bytes32 commitment) external payable onlyDispatcher {
-        address spokeConnector = getSpokeConnector(toChainId);
-        ISpokeTransporter spokeTransporter = ISpokeTransporter(spokeConnector);
-        
+    function dispatchCommitment(uint256 toChainId, bytes32 commitment) external payable onlyDispatcher {        
         emit CommitmentDispatched(toChainId, commitment, block.timestamp);
 
         uint256 fromChainId = getChainId();
-        spokeTransporter.receiveCommitment{value: msg.value}(fromChainId, commitment); // Forward value for message fee
+        address spokeConnector = getSpokeConnector(toChainId);
+        uint256 messageFee = ICrossChainFees(spokeConnector).getFee(toChainId);
+
+        if (msg.value > messageFee) {
+            uint256 feeDifference = msg.value - messageFee;
+            feeReserve += feeDifference;
+        } else {
+            uint256 feeDifference = messageFee - msg.value;
+            if (feeReserve < feeDifference) {
+                revert FeesExhausted();
+            }
+            feeReserve -= feeDifference;
+        }
+
+        ISpokeTransporter(spokeConnector).receiveCommitment{value: messageFee}(fromChainId, commitment); // Forward value for message fee
     }
 
     function receiveOrForwardCommitment(
@@ -102,8 +112,8 @@ contract HubTransporter is Transporter {
 
         uint256 relayReward = getRelayReward(relayWindowStart, transportFee);
         address fromSpokeConnector = getSpokeConnector(fromChainId);
-        ISpokeTransporter fromSpokeTransporter = ISpokeTransporter(fromSpokeConnector);
-        fromSpokeTransporter.payRelayerFee(tx.origin, relayReward, commitment);
+
+        ISpokeTransporter(fromSpokeConnector).payRelayerFee(tx.origin, relayReward, commitment);
     }
 
     /* setters */

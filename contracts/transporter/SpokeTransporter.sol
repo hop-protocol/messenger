@@ -4,6 +4,8 @@ pragma solidity ^0.8.2;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Transporter.sol";
 import "./HubTransporter.sol";
+import "../interfaces/ICrossChainFees.sol";
+import "hardhat/console.sol";
 
 interface IHubBundleTransporterer {
     function receiveOrForwardCommitment(
@@ -11,13 +13,12 @@ interface IHubBundleTransporterer {
         uint256 commitmentFees,
         uint256 toChainId,
         uint256 commitTime
-    ) external;
+    ) external payable;
 }
 
 contract SpokeTransporter is Ownable, Transporter {
     /* events */
     event FeePaid(address indexed to, uint256 amount, uint256 feesCollected);
-    event ExcessFeesDistributed(address indexed to, uint256 amount);
 
     /* constants */
     uint256 public immutable l1ChainId;
@@ -30,9 +31,6 @@ contract SpokeTransporter is Ownable, Transporter {
     mapping(uint256 => bytes32) public pendingBundleNonceForChainId;
     mapping(uint256 => bytes32[]) public pendingMessageIdsForChainId;
     mapping(bytes32 => uint256) public feeForCommitment;
-    uint256 public feeReserve;
-    uint256 targetReserveSize;
-    address public feeCollector;
 
     modifier onlyHub() {
         if (msg.sender != hubTransporterConnector) {
@@ -47,12 +45,17 @@ contract SpokeTransporter is Ownable, Transporter {
     }
 
     function dispatchCommitment(uint256 toChainId, bytes32 commitment) external payable onlyDispatcher {
-        uint256 fee = msg.value;
+        address _hubTransporterConnector = hubTransporterConnector;
+
+        uint256 messageFee = ICrossChainFees(_hubTransporterConnector).getFee(toChainId);
+        require(msg.value >= messageFee, "Insufficient fee");
+
+        uint256 fee = msg.value - messageFee;
         feeForCommitment[commitment] = fee;
 
         emit CommitmentDispatched(toChainId, commitment, block.timestamp);
 
-        IHubBundleTransporterer(hubTransporterConnector).receiveOrForwardCommitment(
+        IHubBundleTransporterer(_hubTransporterConnector).receiveOrForwardCommitment{value: messageFee}(
             commitment,
             fee,
             toChainId,
@@ -88,16 +91,6 @@ contract SpokeTransporter is Ownable, Transporter {
 
         (bool success, ) = relayer.call{value: relayerFee}("");
         if (!success) revert TransferFailed(relayer, relayerFee);
-    }
-
-    /**
-     * @dev Distributes fees in excess of the `targetReserveSize` to the fee collector.
-     */
-    function distributeFees() external onlyOwner {
-        uint256 excessFees = feeReserve - targetReserveSize;
-        emit ExcessFeesDistributed(feeCollector, excessFees);
-        (bool success, ) = feeCollector.call{value: excessFees}("");
-        if (!success) revert TransferFailed(feeCollector, excessFees);
     }
 
     /* Setters */

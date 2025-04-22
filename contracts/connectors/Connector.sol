@@ -4,8 +4,9 @@ pragma solidity ^0.8.2;
 
 import "../shared-solidity/ExecutorLib.sol";
 import "../shared-solidity/Initializable.sol";
+import "../interfaces/ICrossChainFees.sol";
 
-abstract contract Connector is Initializable {
+abstract contract Connector is Initializable, ICrossChainFees {
     using ExecutorLib for address;
 
     error InvalidCounterpart(address counterpart);
@@ -15,7 +16,7 @@ abstract contract Connector is Initializable {
     address public target;
     address public counterpart;
 
-    /// @dev initialize to keep creation code consistent for create2 deployments
+    /// @dev initializer used to keep creation code consistent for create2 deployments
     function initialize(address _target, address _counterpart) public initializer {
         require(_target != address(0), "CNR: Target cannot be zero address");
         require(_counterpart != address(0), "CNR: Counterpart cannot be zero address");
@@ -42,4 +43,8 @@ abstract contract Connector is Initializable {
     function _forwardCrossDomainMessage() internal virtual;
 
     function _verifyCrossDomainSender() internal virtual;
+
+    function getFee(uint256) external virtual view returns (uint256) {
+        return 0;
+    }
 }

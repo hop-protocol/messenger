@@ -3,10 +3,9 @@ pragma solidity ^0.8.2;
 
 import "@hop-protocol/erc5164/contracts/MessageReceiver.sol";
 import "@hop-protocol/erc5164/contracts/IMessageDispatcher.sol";
-import "../interfaces/ICrossChainFees.sol";
 import "./Connector.sol";
 
-contract ERC5164Connector is Connector, MessageReceiver, ICrossChainFees {
+contract ERC5164Connector is Connector, MessageReceiver {
     uint256 public counterpartChainId;
     address public messageDispatcher;
     address public messageExecutor;
