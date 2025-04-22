@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.2;
 
-interface ITransportLayer {
+interface ITransporter {
     /* events */
     event CommitmentDispatched(
         uint256 indexed toChainId,

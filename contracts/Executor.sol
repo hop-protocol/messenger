@@ -3,7 +3,7 @@ pragma solidity ^0.8.9;
 
 import "@hop-protocol/erc5164/contracts/MessageExecutor.sol";
 import "./shared-solidity/OverridableChainId.sol";
-import "./interfaces/ITransportLayer.sol";
+import "./interfaces/ITransporter.sol";
 import "./libraries/Error.sol";
 import "./libraries/Bitmap.sol";
 import "./libraries/MerkleTreeLib.sol";
@@ -19,16 +19,11 @@ struct BundleProof {
 contract Executor is MessageExecutor, OverridableChainId {
     using BitmapLibrary for Bitmap;
 
-    ITransportLayer public immutable transporter;
+    ITransporter public immutable transporter;
     // fromChainId -> bundleId -> verified status
     mapping(uint256 => mapping(bytes32 => bool)) public verifiedBundleIds;
     address public verificationManager;
     mapping(bytes32 => Bitmap) private spentMessagesForBundleNonce;
-
-    event MessageExecuted(
-        bytes32 indexed messageId,
-        uint256 indexed fromChainId
-    );
 
     event BundleProven(
         uint256 indexed fromChainId,
@@ -38,7 +33,7 @@ contract Executor is MessageExecutor, OverridableChainId {
     );
 
     constructor(address _transporter) {
-        transporter = ITransportLayer(_transporter);
+        transporter = ITransporter(_transporter);
     }
 
     function executeMessage(
@@ -76,8 +71,6 @@ contract Executor is MessageExecutor, OverridableChainId {
 
         Bitmap storage spentMessages = spentMessagesForBundleNonce[bundleProof.bundleNonce];
         spentMessages.switchTrue(bundleProof.treeIndex); // Reverts if already true
-
-        emit MessageExecuted(messageId, fromChainId);
 
         _execute(messageId, fromChainId, from, to, data);
     }
