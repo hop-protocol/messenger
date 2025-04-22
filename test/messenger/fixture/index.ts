@@ -209,7 +209,6 @@ class Fixture {
       const executor = this.executors[toChainId.toString()]
       const transporter = this.transporterFixture.transporters[toChainId.toString()]
       const bundleProvenTx = await executor.proveBundle(
-        transporter.address,
         fromChainId.toString(),
         bundle.bundleNonce,
         bundle.bundleRoot

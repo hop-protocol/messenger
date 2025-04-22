@@ -10,12 +10,6 @@ import "./libraries/Bitmap.sol";
 import "./libraries/MerkleTreeLib.sol";
 import "./libraries/MessengerLib.sol";
 
-interface IHopMessageReceiver {
-    // Optional functions for custom validation logic
-    function hop_transporter() external view returns (address);
-    function hop_messageVerifier() external view returns (address);
-}
-
 struct BundleProof {
     bytes32 bundleNonce;
     uint256 treeIndex;
@@ -23,16 +17,13 @@ struct BundleProof {
     uint256 totalLeaves;
 }
 
-contract ExecutorManager is Ownable, OverridableChainId {
+contract ExecutorManager is OverridableChainId {
     using BitmapLibrary for Bitmap;
 
-    address immutable public head;
-
-    address public defaultTransporter;
-    // messageReceiver -> transporter
-    mapping(address => address) public registedTransporters;
-    // transporter -> fromChainId -> bundleId -> verified status
-    mapping(address => mapping(uint256 => mapping(bytes32 => bool))) public verifiedBundleIds;
+    address public immutable head;
+    ITransportLayer public immutable transporter;
+    // fromChainId -> bundleId -> verified status
+    mapping(uint256 => mapping(bytes32 => bool)) public verifiedBundleIds;
     address public verificationManager;
     mapping(bytes32 => Bitmap) private spentMessagesForBundleNonce;
 
@@ -48,10 +39,8 @@ contract ExecutorManager is Ownable, OverridableChainId {
         bytes32 bundleId
     );
 
-    event VerifierRegistered(address indexed receiver, address indexed transporter);
-
-    constructor(address _defaultTransporter) {
-        defaultTransporter = _defaultTransporter;
+    constructor(address _transporter) {
+        transporter = ITransportLayer(_transporter);
 
         head = address(new ExecutorHead());
     }
@@ -102,16 +91,15 @@ contract ExecutorManager is Ownable, OverridableChainId {
         return spentMessages.isTrue(index);
     }
 
-    function proveBundle(address transportLayer, uint256 fromChainId, bytes32 bundleNonce, bytes32 bundleRoot) external {
+    function proveBundle(uint256 fromChainId, bytes32 bundleNonce, bytes32 bundleRoot) external {
         bytes32 bundleId = MessengerLib.getBundleId(fromChainId, getChainId(), bundleNonce, bundleRoot);
-        bool verified = ITransportLayer(transportLayer).isCommitmentProven(fromChainId, bundleId);
-        if (!verified) revert ProveBundleFailed(transportLayer, fromChainId, bundleNonce);
+        bool verified = transporter.isCommitmentProven(fromChainId, bundleId);
+        if (!verified) revert ProveBundleFailed(fromChainId, bundleNonce);
 
-        verifiedBundleIds[defaultTransporter][fromChainId][bundleId] = true;
+        verifiedBundleIds[fromChainId][bundleId] = true;
         emit BundleProven(fromChainId, bundleNonce, bundleRoot, bundleId);
     }
 
-    // ToDo: Enable message specific verification
     function isBundleVerified(
         uint256 fromChainId,
         bytes32 bundleNonce,
@@ -122,27 +110,7 @@ contract ExecutorManager is Ownable, OverridableChainId {
         view
         returns (bool)
     {
-        // check if bundle has been proven
-        address transporter = registedTransporters[messageReceiver];
-        if (transporter == address(0)) {
-            transporter = defaultTransporter;
-        }
-
         bytes32 bundleId = MessengerLib.getBundleId(fromChainId, getChainId(), bundleNonce, bundleRoot);
-        return verifiedBundleIds[transporter][fromChainId][bundleId];
-    }
-
-    function setDefaultTransporter(address verifier) external onlyOwner {
-        defaultTransporter = verifier;
-    }
-
-    // ToDo: This is should be removed.
-    function registerMessageReceiver(address receiver) external {
-        IHopMessageReceiver messageReceiver = IHopMessageReceiver(receiver);
-        address transporter = messageReceiver.hop_transporter();
-
-        registedTransporters[receiver] = transporter;
-
-        emit VerifierRegistered(receiver, transporter);
+        return verifiedBundleIds[fromChainId][bundleId];
     }
 }
