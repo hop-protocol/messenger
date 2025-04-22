@@ -7,7 +7,7 @@ import "./shared-solidity/OverridableChainId.sol";
 import "./libraries/Error.sol";
 import "./libraries/MessengerLib.sol";
 import "./libraries/MerkleTreeLib.sol";
-import "./interfaces/ITransportLayer.sol";
+import "./interfaces/ITransporter.sol";
 import "./interfaces/ICrossChainFees.sol";
 
 struct Route {
@@ -146,7 +146,7 @@ contract Dispatcher is Ownable, EIP712, OverridableChainId, ICrossChainFees {
 
         uint256 fromChainId = getChainId();
         bytes32 bundleId = getBundleId(fromChainId, toChainId, bundleNonce, bundleRoot);
-        ITransportLayer(transporter).dispatchCommitment{value: bundleFees}(toChainId, bundleId);
+        ITransporter(transporter).dispatchCommitment{value: bundleFees}(toChainId, bundleId);
     }
 
     function setRoute(uint256 chainId, uint256 messageFee, uint256 maxBundleMessages) public onlyOwner {

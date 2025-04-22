@@ -17,7 +17,7 @@ import {
 import {ExternalContracts, OPStackConfig} from "../../contracts/shared-solidity/test/foundry/ExternalContracts.sol";
 import {CrossChainScript, Chain} from "../../contracts/shared-solidity/test/foundry/CrossChainScript.sol";
 import {TransporterFixture} from "../../contracts/transporter/scripts/Deploy.s.sol";
-import {ITransportLayer} from "../contracts/interfaces/ITransportLayer.sol";
+import {ITransporter} from "../contracts/interfaces/ITransporter.sol";
 
 contract MessengerFixture is Script, CrossChainScript {
     TransporterFixture public transporterFixture;
@@ -54,7 +54,7 @@ contract MessengerFixture is Script, CrossChainScript {
         for(uint256 i = 0; i < _chainIds.length; i++) {
             uint256 _chainId = _chainIds[i];
             on(_chainId);
-            ITransportLayer transporter = transporterFixture.transporters(_chainId);
+            ITransporter transporter = transporterFixture.transporters(_chainId);
             Dispatcher dispatcher = new Dispatcher(
                 address(transporter), 
                 routes

@@ -24,7 +24,7 @@ import {
 import {ExternalContracts, OPStackConfig} from "../libraries/ExternalContracts.sol";
 import {CrossChainTest, Chain} from "../libraries/CrossChainTest.sol";
 import {TransporterFixture} from "./TransporterFixture.sol";
-import {ITransportLayer} from "../../../contracts/interfaces/ITransportLayer.sol";
+import {ITransporter} from "../../../contracts/interfaces/ITransporter.sol";
 
 import {console} from "forge-std/console.sol";
 
@@ -43,7 +43,7 @@ contract MessengerFixture is TransporterFixture {
             on(chainIds[i]);
 
 
-            ITransportLayer transporter = transporters[chainIds[i]];
+            ITransporter transporter = transporters[chainIds[i]];
 
             Dispatcher dispatcher = new Dispatcher(address(transporter));
             dispatcherForChainId[chainIds[i]] = dispatcher;

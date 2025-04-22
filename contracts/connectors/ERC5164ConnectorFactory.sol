@@ -44,7 +44,6 @@ contract ERC5164ConnectorFactory is OverridableChainId {
         internal
         returns (address)
     {
-        // ToDo: onlyCounterpart or calculate connector address
         uint256 chainId = getChainId();
         bytes32 create2Salt = getSalt(target, chainId, counterpartTarget, counterpartChainId);
         address payable connector = payable(

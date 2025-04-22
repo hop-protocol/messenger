@@ -2,10 +2,10 @@
 pragma solidity ^0.8.2;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "../interfaces/ITransportLayer.sol";
+import "../interfaces/ITransporter.sol";
 import "./libraries/Error.sol";
 
-abstract contract Transporter is Ownable, ITransportLayer {
+abstract contract Transporter is Ownable, ITransporter {
     address public dispatcher;
     mapping(uint256 => mapping(bytes32 => bool)) public provenCommitments;
     uint256 public feeReserve;
