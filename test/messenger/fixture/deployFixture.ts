@@ -4,7 +4,7 @@ import TransporterFixture from '../../transporter/fixture'
 import getSetResultCalldata from '../../../utils/getSetResultCalldata'
 import type {
   Dispatcher as IDispatcher,
-  ExecutorManager as IExecutorManager,
+  Executor as IExecutor,
   MockMessageReceiver as IMessageReceiver,
 } from '../../../typechain'
 import {
@@ -53,7 +53,7 @@ async function deployFixture(
   const MessageReceiver = await ethers.getContractFactory('MockMessageReceiver')
 
   const dispatchers: IDispatcher[] = []
-  const executors: IExecutorManager[] = []
+  const executors: IExecutor[] = []
   const messageReceivers: IMessageReceiver[] = []
   for (let i = 0; i < chainIds.length; i++) {
     const chainId = chainIds[i]
@@ -63,8 +63,7 @@ async function deployFixture(
     dispatchers.push(dispatcher)
     executors.push(executor)
 
-    const executorHead = await executor.head()
-    const messageReceiver = await MessageReceiver.deploy(executorHead)
+    const messageReceiver = await MessageReceiver.deploy(executor.address)
     messageReceivers.push(messageReceiver)
   }
 
@@ -104,7 +103,7 @@ async function deploy(
   transporter: string
 ) {
   const Dispatcher = await ethers.getContractFactory('MockDispatcher')
-  const ExecutorManger = await ethers.getContractFactory('MockExecutorManager')
+  const ExecutorManger = await ethers.getContractFactory('MockExecutor')
 
   const dispatcher = await Dispatcher.deploy(
     transporter,
@@ -115,7 +114,7 @@ async function deploy(
     await dispatcher.setRoute(route.chainId, route.messageFee, route.maxBundleMessages)
   }
 
-  const executor = await ExecutorManger.deploy(transporter, chainId) as IExecutorManager
+  const executor = await ExecutorManger.deploy(transporter, chainId) as IExecutor
 
   return { dispatcher, executor }
 }

@@ -13,26 +13,19 @@ The Hop Messenger includes the following contracts:
 
 ### Dispatchers
 
-There is a single `Dispatcher` on each chain. Dispatchers are responsible for aggregating messages into bundles sending the bundle to the destination through the transport layer. A small fee is required for each message that is dispatched which goes toward the cost of transporting the bundle. A `Dispatcher` may use a single `Transporter` as the transport layer or it may use multiple for better security, speed, or trust tradeoffs.
+There is a single `Dispatcher` on each chain. Dispatchers are responsible for aggregating messages into bundles sending the bundle to the destination through the transport layer. A small fee is required for each message that is dispatched which goes toward the cost of transporting the bundle. 
 
 ### Executors
 
-`Executor`s are responsible for validating and executing messages. Each `Executor` is actually two contracts, the `ExecutorManager` where most of the business logic lives and the `ExecutorHead` which calls the message receivers on behalf of the `ExecutorManager`. There is one `ExecutorManager`/`ExecutorHead` deployed on every supported chain.
-
-_Note: The separation of the business logic contract, the `ExecutorManager`, from the contract capable of arbitrary execution, the `ExecutorHead`, allows us to mitigate the security risks that come with arbitary execution without needing to rely on fallible patterns like contract blacklists._
-
-Before a message can be executed, the `ExecutionManager` must prove the bundle by verifying it with a `Transporter`. If a `MessageReceiver` has not specified a `Transporter`, a message that calls the `MessageReceiver` can be executed after the bundle has been proven with the default `Transporter`. If a `Transporter` is specified by the `MessageReceiver` the bundle must be proven with that `Transporter` before it can be executed (see "Implementing custom validation" below). 
+`Executor`s are responsible for validating and executing messages. There is one `Executor` deployed on every supported chain. Before a message can be executed, the `Executor` must prove the bundle by verifying it with the `Transporter`.
 
 ### Transporters
 
 See [Transporter package](https://github.com/hop-protocol/contracts-v2/packages/transporter).
 
-`Transporter`s are used by the messenger for tranporting data such as bundles cross-chain. The data being transported is always represented by a single hash called a `commitment`. In this case, the `commitment` is the hash of the bundle data -- the `bundleHash`.
+A `Transporter` is used by the messenger for tranporting data such as bundles cross-chain. The data being transported is always represented by a single hash called a `commitment`. In this case, the `commitment` is the hash of the bundle data -- the `bundleHash`.
 
-The default `Transporter` uses the native bridges to transport the `bundleHash` using Ethereum as a hub. This is a simple transport method optimized for trustlessness and security but it can be quite slow in some cases such as sending a message from an optimistic rollup.
-
-Applications that require different speed/trust/security tradeoffs can specify a different `Transporter` than the default or combine multiple together (see "Implementing custom validation" below).
-
+The `Transporter` uses the cannonical bridges to transport the `bundleHash` using Ethereum as a hub. This is a simple transport method optimized for trustlessness and security but it can be quite slow in some cases such as sending a message from an optimistic rollup.
 
 ## Getting Started
 
@@ -69,33 +62,6 @@ contract MyContract is MessageReceiver {
     }
 }
 ```
-
-### Implementing custom validation
-
-Any contract that receives messages from an Executor can determine it's own message validation logic by registering an alternative `Transporter` that the `ExecutorManager` will validate with. This flexibility enables the Hop Messenger to support any method of message validation including methods based on optimistic mechanisms, zk cross-rollup storage proofs, zk cross-chain light clients, collateral-based mechanisms, or authority-based mechanisms. Cross-chain applications can choose to aggregate multiple validation methods to diversify security or trust-based risks. Bundles are agnostic to the validation method and any given bundle of messages may contain messages that utilize many different validation methods.
-
-To register a non-default validation method, the contract receiving the message must implement one or both of the following methods:
-```
-function hop_transporter() external view returns (address);
-function hop_messageVerifier() external view returns (address);
-```
-Any address may call `registerMessageReceiver(address receiver)` on the `ExecutorManager` contract which will call these functions and register the contracts selected `Transporter` and `MessageVerifier` contracts. The `Transporter` validates entire bundles and is called only once per bundle. The `MessageVerifier` can be used to verify individual messages and is called once every time a message is executed if a `MessageVerifier` is registered.
-
-## Deployments
-
-### Testnet
-
-__Goerli__
- * `Dispatcher` - [``](https://goerli.etherscan.io/address/#code)
- * `ExecutorHead` - [``](https://goerli.etherscan.io/address/#code)
- * `ExecutorManager` - [``](https://goerli.etherscan.io/address/#code)
- * `HubTransporter` - [``](https://goerli.etherscan.io/address/#code)
-
-__Optimism Goerli__
- * `Dispatcher` - [``](https://goerli-optimism.etherscan.io/address/#code)
- * `ExecutorHead` - [``](https://goerli-optimism.etherscan.io/address/#code)
- * `ExecutorManager` - [``](https://goerli-optimism.etherscan.io/address/#code)
- * `SpokeTransporter` - [``](https://goerli-optimism.etherscan.io/address/#code)
 
 ## Usage
 

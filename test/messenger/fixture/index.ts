@@ -14,7 +14,7 @@ import TransporterFixture from '../../transporter/fixture'
 
 import {
   Dispatcher as IDispatcher,
-  ExecutorManager as IExecutorManager,
+  Executor as IExecutor,
   MockMessageReceiver as IMessageReceiver
 } from '../../../typechain'
 type Interface = utils.Interface
@@ -41,7 +41,7 @@ class Fixture {
   // static state
   chainIds: BigNumber[]
   dispatchers: { [key: string]: IDispatcher }
-  executors: { [key: string]: IExecutorManager }
+  executors: { [key: string]: IExecutor }
   messageReceivers: { [key: string]: IMessageReceiver }
   transporterFixture: TransporterFixture
   defaults: Defaults
@@ -66,7 +66,7 @@ class Fixture {
   constructor(
     _chainIds: BigNumber[],
     _dispatchers: IDispatcher[],
-    _executors: IExecutorManager[],
+    _executors: IExecutor[],
     _messageReceivers: IMessageReceiver[],
     _transporterFixture: TransporterFixture,
     _defaults: Defaults
@@ -372,10 +372,10 @@ class Fixture {
   async getExecuteMessageEvent(tx: ContractTransaction) {
     const receipt = await tx.wait()
 
-    const executorHead = await ethers.getContractFactory('ExecutorHead')
+    const executor = await ethers.getContractFactory('Executor')
     const messageExecutedEvent = await this._getRawEvent(
       tx,
-      executorHead.interface,
+      executor.interface,
       'MessageIdExecuted(uint256,bytes32)'
     )
     const messageExecuted = messageExecutedEvent

@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@hop-protocol/erc5164/contracts/MessageExecutor.sol";
 import "./shared-solidity/OverridableChainId.sol";
-import "./ExecutorHead.sol";
 import "./interfaces/ITransportLayer.sol";
 import "./libraries/Error.sol";
 import "./libraries/Bitmap.sol";
@@ -17,10 +16,9 @@ struct BundleProof {
     uint256 totalLeaves;
 }
 
-contract ExecutorManager is OverridableChainId {
+contract Executor is MessageExecutor, OverridableChainId {
     using BitmapLibrary for Bitmap;
 
-    address public immutable head;
     ITransportLayer public immutable transporter;
     // fromChainId -> bundleId -> verified status
     mapping(uint256 => mapping(bytes32 => bool)) public verifiedBundleIds;
@@ -41,8 +39,6 @@ contract ExecutorManager is OverridableChainId {
 
     constructor(address _transporter) {
         transporter = ITransportLayer(_transporter);
-
-        head = address(new ExecutorHead());
     }
 
     function executeMessage(
@@ -83,7 +79,7 @@ contract ExecutorManager is OverridableChainId {
 
         emit MessageExecuted(messageId, fromChainId);
 
-        ExecutorHead(head).executeMessage(messageId, fromChainId, from, to, data);
+        _execute(messageId, fromChainId, from, to, data);
     }
 
     function isMessageSpent(bytes32 bundleNonce, uint256 index) public view returns (bool) {

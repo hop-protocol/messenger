@@ -112,11 +112,10 @@ describe('Messenger', function () {
           messageBundled.treeIndex
         )
 
-        const executorHead = await executor.head()
         await expectMessageReceiverState(
           messageReceiver,
           DEFAULT_RESULT,
-          executorHead,
+          executor.address,
           sender.address,
           fromChainId
         )

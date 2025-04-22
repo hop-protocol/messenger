@@ -6,7 +6,7 @@ import {Script} from "forge-std/Script.sol";
 import {Vm} from "forge-std/Vm.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Dispatcher, Route} from "../../../contracts/Dispatcher.sol";
-import {ExecutorManager} from "../../../contracts/ExecutorManager.sol";
+import {Executor} from "../../../contracts/Executor.sol";
 import {MockExecutor} from "../MockExecutor.sol";
 
 import {
@@ -24,7 +24,7 @@ import {
 import {ExternalContracts, OPStackConfig} from "../libraries/ExternalContracts.sol";
 import {CrossChainTest, Chain} from "../libraries/CrossChainTest.sol";
 import {TransporterFixture} from "./TransporterFixture.sol";
-import {ITransportLayer} from "../../../contracts/messenger/interfaces/ITransportLayer.sol";
+import {ITransportLayer} from "../../../contracts/interfaces/ITransportLayer.sol";
 
 import {console} from "forge-std/console.sol";
 

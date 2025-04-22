@@ -5,7 +5,7 @@ import {console} from "forge-std/console.sol";
 import {Script} from "forge-std/Script.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Dispatcher, Route} from "../../contracts/Dispatcher.sol";
-import {ExecutorManager} from "../../contracts/ExecutorManager.sol";
+import {Executor} from "../../contracts/Executor.sol";
 
 import {
     HUB_CHAIN_ID,

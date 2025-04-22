@@ -25,7 +25,7 @@ async function deploy(fileName?: string) {
   const spokeTransporterAddress = transporters[spokeChain]
 
   const Dispatcher = await ethers.getContractFactory('Dispatcher')
-  const ExecutorManager = await ethers.getContractFactory('ExecutorManager')
+  const Executor = await ethers.getContractFactory('Executor')
 
   const { hubSigner, spokeSigners } = getSigners()
 
@@ -53,9 +53,9 @@ async function deploy(fileName?: string) {
   await hubTransporter.setDispatcher(hubDispatcher.address)
   console.log('HubTransporter dispatcher set')
 
-  const hubExecutor = await ExecutorManager.connect(hubSigner).deploy(hubTransporterAddress)
+  const hubExecutor = await Executor.connect(hubSigner).deploy(hubTransporterAddress)
   contracts.executors[hubChainId] = hubExecutor.address
-  await logContractDeployed('ExecutorManager', hubExecutor)
+  await logContractDeployed('Executor', hubExecutor)
 
   const spokeDispatchers = []
   const spokeExecutors = []
@@ -76,9 +76,9 @@ async function deploy(fileName?: string) {
     await tx.wait()
     console.log('SpokeTransporter dispatcher set')
 
-    const spokeExecutor = await ExecutorManager.connect(spokeSigner).deploy(spokeTransporterAddress)
+    const spokeExecutor = await Executor.connect(spokeSigner).deploy(spokeTransporterAddress)
     contracts.executors[spokeChain] = spokeExecutor.address
-    await logContractDeployed('ExecutorManager', spokeExecutor)
+    await logContractDeployed('Executor', spokeExecutor)
     spokeExecutors.push(spokeExecutor)
 
     await logDeployment(`${__dirname}/..`, contracts, fileName)
