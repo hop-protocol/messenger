@@ -62,8 +62,7 @@ contract Executor is MessageExecutor, OverridableChainId {
         bool _isBundleVerified = isBundleVerified(
             fromChainId,
             bundleProof.bundleNonce,
-            bundleRoot,
-            to
+            bundleRoot
         );
         if (!_isBundleVerified) {
             revert InvalidBundle(verificationManager, fromChainId, bundleProof.bundleNonce, to);
@@ -92,8 +91,7 @@ contract Executor is MessageExecutor, OverridableChainId {
     function isBundleVerified(
         uint256 fromChainId,
         bytes32 bundleNonce,
-        bytes32 bundleRoot,
-        address messageReceiver
+        bytes32 bundleRoot
     )
         public
         view
