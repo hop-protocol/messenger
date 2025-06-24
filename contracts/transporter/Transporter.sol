@@ -29,7 +29,7 @@ abstract contract Transporter is Ownable, ITransporter {
         feeReserve += msg.value;
     }
 
-    function setDispatcher(address _dispatcher) external {
+    function setDispatcher(address _dispatcher) external onlyOwner {
         dispatcher = _dispatcher;
     }
 
