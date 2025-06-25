@@ -13,7 +13,7 @@ The Hop Messenger includes the following contracts:
 
 ### Dispatchers
 
-There is a single `Dispatcher` on each chain. Dispatchers are responsible for aggregating messages into bundles sending the bundle to the destination through the transport layer. A small fee is required for each message that is dispatched which goes toward the cost of transporting the bundle. 
+There is a single `Dispatcher` on each chain. Dispatchers are responsible for aggregating messages into bundles sending the bundle to the destination through the transport layer. A small fee is required for each message that is dispatched which goes toward the cost of transporting the bundle.
 
 ### Executors
 
