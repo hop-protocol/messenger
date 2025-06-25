@@ -94,12 +94,12 @@ contract HubTransporter is Transporter {
             toSpokeTransporter.receiveCommitment{value: msg.value}(fromChainId, commitment);
         }
 
-        // Pay relayer
-        uint256 relayWindowStart = commitTime + getSpokeExitTime(fromChainId);
         emit CommitmentProven(
             fromChainId,
             commitment
         );
+
+        uint256 relayWindowStart = commitTime + getSpokeExitTime(fromChainId);
 
         emit CommitmentRelayed(
             fromChainId,

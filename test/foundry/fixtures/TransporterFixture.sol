@@ -49,7 +49,7 @@ contract TransporterFixture is CrossChainTest {
             MAX_TRANSPORT_FEE_BPS
         );
 
-        transporters[_l1ChainId] = Transporter(address(hubTransporter));
+        transporters[_l1ChainId] = Transporter(payable(address(hubTransporter)));
     }
 
     function deploySpokeTransporter(uint256 _l1ChainId, uint256 spokeChainId) public broadcastOn(spokeChainId) {
