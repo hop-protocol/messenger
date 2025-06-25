@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.2;
 
-import "../../contracts/ERC5164/IMessageExecutor.sol";
+import "@hop-protocol/erc5164/contracts/IMessageExecutor.sol";
 
 contract MockExecutor is IMessageExecutor {
     function execute(

@@ -2,6 +2,15 @@
 pragma solidity ^0.8.9;
 
 library MessengerLib {
+    /// @notice Generates a unique message identifier from message parameters
+    /// @param bundleNonce The nonce of the bundle containing this message
+    /// @param treeIndex The index of the message within the bundle's merkle tree
+    /// @param fromChainId The chain ID where the message originated
+    /// @param from The address that sent the message
+    /// @param toChainId The destination chain ID
+    /// @param to The target address on the destination chain
+    /// @param data The message calldata
+    /// @return The unique message identifier
     function getMessageId(
         bytes32 bundleNonce,
         uint256 treeIndex,
@@ -28,6 +37,12 @@ library MessengerLib {
         );
     }
 
+    /// @notice Generates a unique bundle identifier from bundle parameters
+    /// @param fromChainId The source chain ID
+    /// @param toChainId The destination chain ID
+    /// @param bundleNonce The bundle nonce
+    /// @param bundleRoot The merkle root of all messages in the bundle
+    /// @return The unique bundle identifier
     function getBundleId(
         uint256 fromChainId,
         uint256 toChainId,
