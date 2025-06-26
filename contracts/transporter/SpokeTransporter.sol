@@ -84,17 +84,7 @@ contract SpokeTransporter is Transporter {
     function payRelayerFee(address relayer, uint256 relayerFee, bytes32 commitment) external onlyHub {
         uint256 feeCollected = feeForCommitment[commitment];
 
-        if (feeCollected > relayerFee) {
-            // Excess fees go to the protocol reserve for future operations
-            uint256 feeDifference = feeCollected - relayerFee;
-            feeReserve += feeDifference;
-        } else if (relayerFee > feeCollected) {
-            // If relayer fee exceeds collected fees, use reserve to cover difference
-            // This ensures relayers are always paid fairly even if fees were underestimated
-            uint256 feeDifference = relayerFee - feeCollected;
-            if (feeDifference > feeReserve) revert FeesExhausted();
-            feeReserve -= feeDifference;
-        }
+        if (address(this).balance < relayerFee) revert FeesExhausted();
 
         emit FeePaid(relayer, relayerFee, feeCollected);
 

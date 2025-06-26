@@ -43,12 +43,18 @@ contract HubTransporter is Transporter {
         uint256 _absoluteMaxFee,
         uint256 _maxFeeBPS
     ) {
+        if (_relayWindow == 0) revert NoZeroRelayWindow();
+        if (_absoluteMaxFee == 0) revert NoZeroAbsoluteMaxFee();
+        if (_maxFeeBPS == 0) revert NoZeroMaxFeeBPS();
         relayWindow = _relayWindow;
         absoluteMaxFee = _absoluteMaxFee;
         maxFeeBPS = _maxFeeBPS;
     }
 
     /// @notice Dispatches a commitment to a destination chain
+    /// @dev This function is called by the dispatcher with all ETH collected for the bundle.
+    /// If msg.value exceeds the required message fee, the excess ETH contributes to the fee reserve. Otherwise,
+    /// the fee reserve is used to cover the difference.
     /// @param toChainId The destination chain ID
     /// @param commitment The commitment hash to dispatch
     function dispatchCommitment(uint256 toChainId, bytes32 commitment) external payable onlyDispatcher {        
@@ -57,18 +63,6 @@ contract HubTransporter is Transporter {
         uint256 fromChainId = getChainId();
         address spokeConnector = getSpokeConnector(toChainId);
         uint256 messageFee = ICrossChainFees(spokeConnector).getFee(toChainId);
-
-        // If excess fees were sent, add to reserve; if insufficient, use reserve
-        if (msg.value > messageFee) {
-            uint256 feeDifference = msg.value - messageFee;
-            feeReserve += feeDifference;
-        } else {
-            uint256 feeDifference = messageFee - msg.value;
-            if (feeReserve < feeDifference) {
-                revert FeesExhausted();
-            }
-            feeReserve -= feeDifference;
-        }
 
         // Forward commitment to spoke chain with exact message fee required
         ISpokeTransporter(spokeConnector).receiveCommitment{value: messageFee}(fromChainId, commitment); // Forward value for message fee
@@ -101,8 +95,11 @@ contract HubTransporter is Transporter {
             ISpokeTransporter toSpokeTransporter = ISpokeTransporter(toSpokeConnector);
 
             emit CommitmentForwarded(fromChainId, toChainId, commitment);
-            // Forward value for cross-chain message fee
-            toSpokeTransporter.receiveCommitment{value: msg.value}(fromChainId, commitment);
+
+            // Pay the message fee from the fee reserve
+            uint256 messageFee = ICrossChainFees(toSpokeConnector).getFee(toChainId);
+            if (address(this).balance < messageFee) revert FeesExhausted();
+            toSpokeTransporter.receiveCommitment{value: messageFee}(fromChainId, commitment);
         }
 
         emit CommitmentProven(

@@ -12,7 +12,6 @@ import "./libraries/Error.sol";
 abstract contract Transporter is Ownable, ITransporter {
     address public dispatcher;
     mapping(uint256 => mapping(bytes32 => bool)) public provenCommitments;
-    uint256 public feeReserve;
     uint256 public targetReserveSize;
     address public feeRecipient;
     address public feeDistributor;
@@ -30,7 +29,7 @@ abstract contract Transporter is Ownable, ITransporter {
     }
 
     receive() external payable {
-        feeReserve += msg.value;
+        // contributes to fee reserve
     }
 
     /// @notice Sets the dispatcher address that can dispatch commitments
@@ -48,6 +47,7 @@ abstract contract Transporter is Ownable, ITransporter {
     }
 
     function _setProvenCommitment(uint256 fromChainId, bytes32 commitment) internal {
+        if (provenCommitments[fromChainId][commitment]) revert CommitmentAlreadyProven(fromChainId, commitment);
         provenCommitments[fromChainId][commitment] = true;
         emit CommitmentProven(fromChainId, commitment);
     }
@@ -62,11 +62,13 @@ abstract contract Transporter is Ownable, ITransporter {
     /// @notice Distributes fees in excess of the target reserve size to the fee recipient
     /// @dev Calculates excess fees above the target reserve size and transfers them
     function distributeFees() external onlyFeeDistributor() {
+        uint256 feeReserve = address(this).balance;
+        if (address(this).balance < targetReserveSize) revert InsufficientReserve(feeReserve, targetReserveSize);
         // Calculate excess fees above the target reserve size
         // This ensures the protocol maintains a healthy reserve while distributing surplus
         uint256 excessFees = feeReserve - targetReserveSize;
         emit ExcessFeesDistributed(feeRecipient, excessFees);
-        
+
         // Transfer excess fees to the designated recipient
         (bool success, ) = feeRecipient.call{value: excessFees}("");
         if (!success) revert TransferFailed(feeRecipient, excessFees);
@@ -75,12 +77,14 @@ abstract contract Transporter is Ownable, ITransporter {
     /// @notice Sets the address that will receive distributed fees
     /// @param _feeRecipient The address to receive fees
     function setFeeRecipient(address _feeRecipient) external onlyOwner {
+        if (_feeRecipient == address(0)) revert NoZeroAddress();
         feeRecipient = _feeRecipient;
     }
 
     /// @notice Sets the address authorized to distribute fees
     /// @param _feeDistributor The address authorized to call distributeFees
     function setFeeDistributor(address _feeDistributor) external onlyOwner {
+        if (_feeDistributor == address(0)) revert NoZeroAddress();
         feeDistributor = _feeDistributor;
     }
 
