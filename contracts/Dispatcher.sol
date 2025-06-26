@@ -24,8 +24,6 @@ struct RouteData {
 contract Dispatcher is Ownable, EIP712, OverridableChainId, ICrossChainFees {
     using MerkleTreeLib for bytes32;
 
-    error NoZeroAddress();
-
     /* events */
     event MessageSent(
         bytes32 indexed messageId,
@@ -126,7 +124,7 @@ contract Dispatcher is Ownable, EIP712, OverridableChainId, ICrossChainFees {
     function commitPendingBundle(uint256 toChainId) external payable {
         if (pendingMessageIdsForChainId[toChainId].length == 0) revert NoPendingBundle();
 
-        // Allow additional fees to be added to help cover transport costs
+        // Caller must pay the remaining fees for the bundle
         pendingFeesForChainId[toChainId] += msg.value;
 
         // Ensure there are enough fees to transport a full bundle
@@ -136,6 +134,7 @@ contract Dispatcher is Ownable, EIP712, OverridableChainId, ICrossChainFees {
 
         uint256 fullBundleFee = messageFee * numMessages;
         if (fullBundleFee != pendingFeesForChainId[toChainId]) revert NotEnoughFees(fullBundleFee, pendingFeesForChainId[toChainId]);
+
         _commitPendingBundle(toChainId);
     }
 
@@ -148,7 +147,7 @@ contract Dispatcher is Ownable, EIP712, OverridableChainId, ICrossChainFees {
         bytes32 bundleNonce = pendingBundleNonceForChainId[toChainId];
 
         // Create merkle root of all messages in the bundle
-        // This single hash represents proof of all messages and will be transported cross-chain by the transporter
+        // This single hash represents proof of all messages in the bundle and will be transported cross-chain by the transporter
         bytes32 bundleRoot = MerkleTreeLib.getMerkleRoot(pendingMessageIds);
         uint256 bundleFees = pendingFeesForChainId[toChainId];
 
@@ -156,7 +155,7 @@ contract Dispatcher is Ownable, EIP712, OverridableChainId, ICrossChainFees {
         pendingBundleNonceForChainId[toChainId] = bytes32(uint256(pendingBundleNonceForChainId[toChainId]) + 1);
 
         // Setting the array length to 0 while leaving storage slots dirty saves gas 15k gas per
-        // message. and is safe inthis case because the array length is never set to a non-zero
+        // message. and is safe in this case because the array length is never set to a non-zero
         // number. This ensures dirty array slots can never be accessed until they're rewritten by
         // a `push()`.
         assembly {
@@ -187,8 +186,6 @@ contract Dispatcher is Ownable, EIP712, OverridableChainId, ICrossChainFees {
             pendingBundleNonceForChainId[chainId] = initialBundleNonce(chainId);
         }
 
-        // Commit any existing pending bundle before changing route parameters
-        _commitPendingBundle(chainId);
         messageFeeForChainId[chainId] = messageFee;
         maxBundleMessagesForChainId[chainId] = maxBundleMessages;
     }
