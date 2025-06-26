@@ -1,12 +1,10 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.2;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Transporter.sol";
-import "./HubTransporter.sol";
 import "../interfaces/ICrossChainFees.sol";
 
-interface IHubBundleTransporterer {
+interface IHubTransporter {
     function receiveOrForwardCommitment(
         bytes32 commitment,
         uint256 commitmentFees,
@@ -15,7 +13,7 @@ interface IHubBundleTransporterer {
     ) external payable;
 }
 
-contract SpokeTransporter is Ownable, Transporter {
+contract SpokeTransporter is Transporter {
     /* events */
     event FeePaid(address indexed to, uint256 amount, uint256 feesCollected);
 
@@ -24,7 +22,6 @@ contract SpokeTransporter is Ownable, Transporter {
 
     /* config*/
     address public hubTransporterConnector;
-    uint256 public pendingFeeBatchSize;
 
     /* state */
     mapping(uint256 => bytes32) public pendingBundleNonceForChainId;
@@ -38,9 +35,9 @@ contract SpokeTransporter is Ownable, Transporter {
         _;
     }
 
-    constructor(uint256 _l1ChainId, uint256 _pendingFeeBatchSize) {
+    constructor(uint256 _l1ChainId) {
+        if (_l1ChainId == 0) revert NoZeroChainId();
         l1ChainId = _l1ChainId;
-        pendingFeeBatchSize = _pendingFeeBatchSize;
     }
 
     /// @notice Dispatches a commitment from this spoke to another chain via the hub
@@ -52,17 +49,19 @@ contract SpokeTransporter is Ownable, Transporter {
 
         // Calculate required fee for cross-chain message to hub
         uint256 messageFee = ICrossChainFees(_hubTransporterConnector).getFee(toChainId);
-        require(msg.value >= messageFee, "Insufficient fee");
+        if (msg.value < messageFee) revert IncorrectFee(messageFee, msg.value);
 
         // The remaining fee is used to incentivize relayers on the hub chain
         uint256 fee = msg.value - messageFee;
+        // Extra check to make sure a fee isn't overwritten
+        if (feeForCommitment[commitment] > 0) revert CommitmentAlreadyHasFee(commitment);
         feeForCommitment[commitment] = fee;
 
         emit CommitmentDispatched(toChainId, commitment, block.timestamp);
 
         // Send commitment to hub
         // The hub will forward this commitment to its final destination if needed
-        IHubBundleTransporterer(_hubTransporterConnector).receiveOrForwardCommitment{value: messageFee}(
+        IHubTransporter(_hubTransporterConnector).receiveOrForwardCommitment{value: messageFee}(
             commitment,
             fee,
             toChainId,
@@ -112,11 +111,5 @@ contract SpokeTransporter is Ownable, Transporter {
         if (_hubTransporterConnector == address(0)) revert NoZeroAddress();
 
         hubTransporterConnector = _hubTransporterConnector;
-    }
-
-    /// @notice Sets the pending fee batch size for batching operations
-    /// @param _pendingFeeBatchSize The new batch size (0 will flush pending fees for every bundle)
-    function setpendingFeeBatchSize(uint256 _pendingFeeBatchSize) external onlyOwner {
-        pendingFeeBatchSize = _pendingFeeBatchSize;
     }
 }

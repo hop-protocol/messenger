@@ -24,6 +24,8 @@ struct RouteData {
 contract Dispatcher is Ownable, EIP712, OverridableChainId, ICrossChainFees {
     using MerkleTreeLib for bytes32;
 
+    error NoZeroAddress();
+
     /* events */
     event MessageSent(
         bytes32 indexed messageId,
@@ -58,6 +60,7 @@ contract Dispatcher is Ownable, EIP712, OverridableChainId, ICrossChainFees {
     /// @notice Creates a new Dispatcher contract
     /// @param _transporter Address of the transporter contract that handles cross-chain commitments
     constructor(address _transporter) EIP712("Dispatcher", "1") {
+        if (_transporter == address(0)) revert NoZeroAddress();
         transporter = _transporter;
     }
 
@@ -132,9 +135,7 @@ contract Dispatcher is Ownable, EIP712, OverridableChainId, ICrossChainFees {
         uint256 messageFee = messageFeeForChainId[toChainId];
 
         uint256 fullBundleFee = messageFee * numMessages;
-        if (fullBundleFee > pendingFeesForChainId[toChainId]) {
-            revert NotEnoughFees(fullBundleFee, pendingFeesForChainId[toChainId]);
-        }
+        if (fullBundleFee != pendingFeesForChainId[toChainId]) revert NotEnoughFees(fullBundleFee, pendingFeesForChainId[toChainId]);
         _commitPendingBundle(toChainId);
     }
 
@@ -145,7 +146,7 @@ contract Dispatcher is Ownable, EIP712, OverridableChainId, ICrossChainFees {
         }
 
         bytes32 bundleNonce = pendingBundleNonceForChainId[toChainId];
-        
+
         // Create merkle root of all messages in the bundle
         // This single hash represents proof of all messages and will be transported cross-chain by the transporter
         bytes32 bundleRoot = MerkleTreeLib.getMerkleRoot(pendingMessageIds);

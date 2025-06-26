@@ -10,6 +10,9 @@ contract ERC5164Connector is Connector, MessageReceiver {
     address public messageDispatcher;
     address public messageExecutor;
 
+    error NoZeroAddress();
+    error NoZeroCounterpartChainId();
+
     function initialize(
         address target,
         address counterpart,
@@ -18,6 +21,9 @@ contract ERC5164Connector is Connector, MessageReceiver {
         uint256 _counterpartChainId
     ) external {
         initialize(target, counterpart);
+        if (_messageDispatcher == address(0)) revert NoZeroAddress();
+        if (_messageExecutor == address(0)) revert NoZeroAddress();
+        if (_counterpartChainId == 0) revert NoZeroCounterpartChainId();
         messageDispatcher = _messageDispatcher;
         messageExecutor = _messageExecutor;
         counterpartChainId = _counterpartChainId;

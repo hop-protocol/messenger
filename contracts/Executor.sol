@@ -22,7 +22,6 @@ contract Executor is MessageExecutor, OverridableChainId {
     ITransporter public immutable transporter;
     // fromChainId -> bundleId -> verified status
     mapping(uint256 => mapping(bytes32 => bool)) public verifiedBundleIds;
-    address public verificationManager;
     mapping(bytes32 => Bitmap) private spentMessagesForBundleNonce;
 
     event BundleProven(
@@ -35,6 +34,7 @@ contract Executor is MessageExecutor, OverridableChainId {
     /// @notice Creates a new Executor contract
     /// @param _transporter Address of the transporter contract that handles cross-chain commitments
     constructor(address _transporter) {
+        if (_transporter == address(0)) revert NoZeroAddress();
         transporter = ITransporter(_transporter);
     }
 
@@ -78,9 +78,7 @@ contract Executor is MessageExecutor, OverridableChainId {
             bundleProof.bundleNonce,
             bundleRoot
         );
-        if (!_isBundleVerified) {
-            revert InvalidBundle(verificationManager, fromChainId, bundleProof.bundleNonce, to);
-        }
+        if (!_isBundleVerified) revert InvalidBundle(fromChainId, bundleProof.bundleNonce, to);
 
         // Prevent double-spending by marking this message as used
         // Uses a bitmap for gas-efficient storage of spent message indices
@@ -95,7 +93,7 @@ contract Executor is MessageExecutor, OverridableChainId {
     /// @param bundleNonce The nonce of the bundle to check
     /// @param index The tree index of the message within the bundle
     /// @return True if the message has been spent, false otherwise
-    function isMessageSpent(bytes32 bundleNonce, uint256 index) public view returns (bool) {
+    function isMessageSpent(bytes32 bundleNonce, uint256 index) external view returns (bool) {
         Bitmap storage spentMessages = spentMessagesForBundleNonce[bundleNonce];
         return spentMessages.isTrue(index);
     }
@@ -113,7 +111,6 @@ contract Executor is MessageExecutor, OverridableChainId {
         bool verified = transporter.isCommitmentProven(fromChainId, bundleId);
         if (!verified) revert ProveBundleFailed(fromChainId, bundleNonce);
 
-        // Cache the verification result to avoid repeated transporter calls
         verifiedBundleIds[fromChainId][bundleId] = true;
         emit BundleProven(fromChainId, bundleNonce, bundleRoot, bundleId);
     }

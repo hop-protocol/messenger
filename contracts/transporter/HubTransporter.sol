@@ -1,7 +1,6 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.2;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "./Transporter.sol";
 import "../interfaces/ICrossChainFees.sol";
@@ -27,7 +26,6 @@ contract HubTransporter is Transporter {
         uint256 indexed toChainId,
         bytes32 indexed commitment
     );
-    event ConfigUpdated();
 
     /* constants */
     uint256 constant BASIS_POINTS = 10_000;
@@ -160,21 +158,18 @@ contract HubTransporter is Transporter {
     function setRelayWindow(uint256 _relayWindow) external onlyOwner {
         if (_relayWindow == 0) revert NoZeroRelayWindow();
         relayWindow = _relayWindow;
-        emit ConfigUpdated();
     }
 
     /// @notice Sets the absolute maximum fee that can be charged
     /// @param _absoluteMaxFee The new absolute maximum fee amount
     function setAbsoluteMaxFee(uint256 _absoluteMaxFee) external onlyOwner {
         absoluteMaxFee = _absoluteMaxFee;
-        emit ConfigUpdated();
     }
 
     /// @notice Sets the maximum fee as a percentage in basis points
     /// @param _maxFeeBPS The new maximum fee percentage (in basis points, where 10000 = 100%)
     function setMaxFeeBPS(uint256 _maxFeeBPS) external onlyOwner {
         maxFeeBPS = _maxFeeBPS;
-        emit ConfigUpdated();
     }
 
     /* getters */
@@ -184,9 +179,7 @@ contract HubTransporter is Transporter {
     /// @return The address of the spoke connector
     function getSpokeConnector(uint256 chainId) public view returns (address) {
         address spoke = spokeConnectorForChainId[chainId];
-        if (spoke == address(0)) {
-            revert InvalidRoute(chainId);
-        }
+        if (spoke == address(0)) revert InvalidRoute(chainId);
         return spoke;
     }
 
@@ -195,9 +188,7 @@ contract HubTransporter is Transporter {
     /// @return The chain ID associated with the connector
     function getSpokeChainId(address connector) public view returns (uint256) {
         uint256 chainId = chainIdForSpokeConnector[connector];
-        if (chainId == 0) {
-            revert InvalidSender(connector);
-        }
+        if (chainId == 0) revert InvalidSender(connector);
         return chainId;
     }
 
@@ -206,15 +197,8 @@ contract HubTransporter is Transporter {
     /// @return The exit time in seconds for the spoke chain
     function getSpokeExitTime(uint256 chainId) public view returns (uint256) {
         uint256 exitTime = exitTimeForChainId[chainId];
-        if (exitTime == 0) {
-            revert InvalidChainId(chainId);
-        }
+        if (exitTime == 0) revert InvalidChainId(chainId);
         return exitTime;
-    }
-
-    function getBalance() private view returns (uint256) {
-        // ToDo: Handle ERC20
-        return address(this).balance;
     }
 
     /// @notice Calculates the relay reward based on timing and collected fees

@@ -111,7 +111,6 @@ async function deploySpokeTransporter(
 
   return SpokeTransporter.deploy(
     hubChainId,
-    0,
     spokeChainId
   ) as Promise<ISpokeTransporter>
 }

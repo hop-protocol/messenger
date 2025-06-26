@@ -6,6 +6,9 @@ error NoZeroChainId();
 error NoZeroExitTime();
 error NoZeroMessageFee();
 error NoZeroMaxBundleMessages();
+error NoZeroRelayWindow();
+error NoZeroAbsoluteMaxFee();
+error NoZeroMaxFeeBPS();
 error BundleNotFound(bytes32 bundleRoot);
 error InvalidProof(
     bytes32 bundleRoot,
@@ -24,12 +27,12 @@ error NotCrossDomainMessage();
 error NoPendingBundle();
 error MessageIsSpent(bytes32 bundleNonce, uint256 treeIndex, bytes32 messageId);
 error CannotMessageAddress(address to);
-error PendingFeesTooHigh(uint256 pendingAmount, uint256 pendingFeeBatchSize);
-error PendingFeeBatchSizeTooLow(uint256 pendingFeeBatchSize);
 error PoolNotFull(uint256 poolSize, uint256 fullPoolSize);
-error NoZeroRelayWindow();
 error NotHub(address msgSender);
 error ProveBundleFailed(uint256 fromChainId, bytes32 bundleNonce);
-error InvalidBundle(address verificationManager, uint256 fromChainId, bytes32 bundleNonce, address to);
+error InvalidBundle(uint256 fromChainId, bytes32 bundleNonce, address to);
 error FeesExhausted();
 error TransferFailed(address relayer, uint256 relayerFee);
+error InsufficientReserve(uint256 available, uint256 required);
+error CommitmentAlreadyHasFee(bytes32 commitment);
+error CommitmentAlreadyProven(uint256 fromChainId, bytes32 commitment);

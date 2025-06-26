@@ -53,7 +53,7 @@ contract TransporterFixture is CrossChainTest {
     }
 
     function deploySpokeTransporter(uint256 _l1ChainId, uint256 spokeChainId) public broadcastOn(spokeChainId) {
-        SpokeTransporter spokeTransporter = new SpokeTransporter(_l1ChainId, FULL_POOL_SIZE);
+        SpokeTransporter spokeTransporter = new SpokeTransporter(_l1ChainId);
         transporters[spokeChainId] = spokeTransporter;
         spokeTransporters.push(spokeTransporter);
     }
