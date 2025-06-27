@@ -213,7 +213,7 @@ contract Dispatcher is Ownable, EIP712, OverridableChainId, ICrossChainFees {
     /// @return fee The fee required per message for the specified chain
     function getFee(uint256 chainId) external override view returns (uint256 fee) {
         uint256 thisChainId = getChainId();
-        require(chainId != thisChainId, "Dispatcher: invalid chain id");
+        if (chainId == thisChainId) revert InvalidChainId(chainId);
         return messageFeeForChainId[chainId];
     }
 }

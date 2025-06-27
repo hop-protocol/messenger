@@ -2,6 +2,6 @@ forge-std/=lib/forge-std/src/
 @openzeppelin/=node_modules/@openzeppelin/
 @ensdomains/=node_modules/@ensdomains/
 @eth-optimism/=node_modules/@eth-optimism/
-@hop-protocol/=node_modules/@hop-protocol
+@hop-protocol/=node_modules/@hop-protocol/
 ds-test/=lib/forge-std/lib/ds-test/src/
 hardhat/=node_modules/hardhat/

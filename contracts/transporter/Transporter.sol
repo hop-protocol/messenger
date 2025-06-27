@@ -3,7 +3,7 @@ pragma solidity ^0.8.2;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../interfaces/ITransporter.sol";
-import "./libraries/Error.sol";
+import "../libraries/Error.sol";
 
 /// @title Transporter
 /// @notice Base contract for transporting cross-chain commitments
