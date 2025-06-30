@@ -39,7 +39,7 @@ IMessageDispatcher(dispatcher).dispatchMessage(toChainId, to, data);
 
 ### Receive a message
 
-When receiving a message, inherit from [`MessageReceiver`](https://github.com/hop-protocol/contracts-v2/blob/master/packages/messenger/contracts/ERC5164/MessageReceiver.sol) to access the `EIP-5164` validation data -- `messageId`, `from` address, and `fromChainId`.
+When receiving a message, inherit from [`MessageReceiver`](https://github.com/hop-protocol/contracts-v2/blob/master/packages/messenger/contracts/erc5164/MessageReceiver.sol) to access the `EIP-5164` validation data -- `messageId`, `from` address, and `fromChainId`.
 
 ```solidity
 contract MyContract is MessageReceiver {
@@ -116,3 +116,9 @@ RPC_ENDPOINT_HOP_SEPOLIA="http://127.0.0.1:8548"
 ```
 npm run test
 ```
+
+## Known Issues
+
+### Improperly Managed Fee Reserve May Run Dry
+
+Fees are collected based on an oracle-supplied gas price that includes a premium above the actual estimated gas price. This allows fees to accumulate in the fee reserve. If the oracle-supplied gas price is lower than the actual gas price, fees from the fee reserve are used to cover the difference. If the fee oracle is not properly managed, fees may run dry, requiring DAO intervention.
