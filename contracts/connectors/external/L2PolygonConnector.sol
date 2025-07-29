@@ -12,8 +12,8 @@ contract L2PolygonConnector is Connector, FxBaseChildTunnel, ReentrancyGuard {
         _sendMessageToRoot(msg.data);
     }
 
-    function _verifyCrossDomainSender() internal override pure {
-        // revert InvalidCounterpart();
+    function _verifyCrossDomainSender() internal override view {
+        revert InvalidCounterpart(msg.sender);
     }
 
     function _processMessageFromRoot(
