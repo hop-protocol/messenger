@@ -5,7 +5,6 @@
  * Use at your own risk.
  */
 
-// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.19;
 import {StdChains} from "forge-std/StdChains.sol";
 import {Vm} from "forge-std/Vm.sol";
