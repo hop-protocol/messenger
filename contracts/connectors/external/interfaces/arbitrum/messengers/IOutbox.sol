@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MIT
 /**
  * @notice This contract is provided as-is without any warranties.
  * @dev No guarantees are made regarding security, correctness, or fitness for any purpose.
